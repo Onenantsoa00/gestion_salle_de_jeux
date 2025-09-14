@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">gestion_salle_de_jeux</string>
+    <string name="title_home">Home</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_notifications">Notifications</string>
+    <string name="title_history">History</string>
+    <string name="title_game_room">Game Room</string>
+    <string name="title_finance">Finance</string>
+    <string name="title_materiel">Materiel</string>
+</resources>

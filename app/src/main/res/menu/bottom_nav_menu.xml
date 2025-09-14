@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/navigation_dashboard"
+        android:icon="@drawable/ic_dashboard"
+        android:title="@string/title_dashboard" />
+
+    <item
+        android:id="@+id/navigation_history"
+        android:icon="@drawable/ic_history"
+        android:title="@string/title_history" />
+
+    <item
+        android:id="@+id/navigation_game_room"
+        android:icon="@drawable/ic_gamepad"
+        android:title="@string/title_game_room" />
+
+    <item
+        android:id="@+id/navigation_finance"
+        android:icon="@drawable/ic_finance"
+        android:title="@string/title_finance" />
+
+    <item
+        android:id="@+id/navigation_materiel"
+        android:icon="@drawable/ic_material"
+        android:title="@string/title_materiel" />
+</menu>
