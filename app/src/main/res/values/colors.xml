@@ -28,4 +28,19 @@
 
     <color name="bottom_nav_color_selected">#8B5CF6</color>
 
+    <!-- Couleurs principales -->
+    <color name="card_background">#374151</color>
+
+    <!-- Texte -->
+
+    <!-- Couleurs financières -->
+    <color name="green_light">#34D399</color>
+    <color name="red_light">#F87171</color>
+
+    <!-- Utilitaires -->
+    <color name="divider">#4B5563</color>
+
+    <!-- res/values/colors.xml -->
+    <color name="accent_dark">#FF3700B3</color>
+
 </resources>
