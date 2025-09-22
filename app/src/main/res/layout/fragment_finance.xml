@@ -34,19 +34,17 @@
             android:textSize="18sp"
             android:layout_marginBottom="8dp" />
 
-        <TextView
-            android:id="@+id/tvDateHeure"
+        <Button
+            android:id="@+id/btnDateHeure"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Date et Heure: "
+            android:text="Sélectionner la date et l'heure"
             android:drawableStart="@drawable/ic_calendar"
             android:drawablePadding="8dp"
             android:gravity="center_vertical"
             android:padding="8dp"
             android:background="@android:drawable/editbox_background"
-            android:layout_marginBottom="8dp"
-            android:clickable="true"
-            android:focusable="true"/>
+            android:layout_marginBottom="8dp"/>
 
         <EditText
             android:id="@+id/etMontantEntrant"

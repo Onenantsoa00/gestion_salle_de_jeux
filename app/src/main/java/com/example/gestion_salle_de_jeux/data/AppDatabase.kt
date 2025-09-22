@@ -7,6 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.example.gestion_salle_de_jeux.data.converters.DateConverter
 import com.example.gestion_salle_de_jeux.data.dao.FinanceDao
+import com.example.gestion_salle_de_jeux.data.dao.JeuxDao
 import com.example.gestion_salle_de_jeux.data.entity.Finance
 import com.example.gestion_salle_de_jeux.data.entity.Jeux
 import com.example.gestion_salle_de_jeux.data.entity.Materiel
@@ -22,6 +23,7 @@ import com.example.gestion_salle_de_jeux.data.entity.Tournoi
 @TypeConverters(DateConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun financeDao(): FinanceDao
+    abstract fun jeuxDao(): JeuxDao
 
     companion object {
         @Volatile
