@@ -19,5 +19,5 @@ data class Materiel (
     @ColumnInfo(name = "console") val console: String,
     @ColumnInfo(name = "nombre_manette") val nombre_manette: Short,
     @ColumnInfo(name = "nombre_television") val nombre_television: Short,
-    @ColumnInfo(name = "id_reserve") val id_reserve: Int,
+    @ColumnInfo(name = "id_reserve") val id_reserve: Int = 0,
 )

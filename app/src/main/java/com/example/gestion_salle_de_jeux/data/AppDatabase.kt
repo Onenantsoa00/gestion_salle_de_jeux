@@ -8,6 +8,7 @@ import androidx.room.TypeConverters
 import com.example.gestion_salle_de_jeux.data.converters.DateConverter
 import com.example.gestion_salle_de_jeux.data.dao.FinanceDao
 import com.example.gestion_salle_de_jeux.data.dao.JeuxDao
+import com.example.gestion_salle_de_jeux.data.dao.MaterielDao
 import com.example.gestion_salle_de_jeux.data.entity.Finance
 import com.example.gestion_salle_de_jeux.data.entity.Jeux
 import com.example.gestion_salle_de_jeux.data.entity.Materiel
@@ -24,6 +25,7 @@ import com.example.gestion_salle_de_jeux.data.entity.Tournoi
 abstract class AppDatabase : RoomDatabase() {
     abstract fun financeDao(): FinanceDao
     abstract fun jeuxDao(): JeuxDao
+    abstract fun materielDao(): MaterielDao
 
     companion object {
         @Volatile
