@@ -43,4 +43,7 @@
     <!-- res/values/colors.xml -->
     <color name="accent_dark">#FF3700B3</color>
 
+    <color name="blue">#3B82F6</color>
+    <color name="orange">#F59E0B</color>
+
 </resources>

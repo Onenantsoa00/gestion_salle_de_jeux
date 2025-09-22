@@ -59,6 +59,39 @@
                 android:padding="20dp"
                 android:background="@drawable/stats_gradient">
 
+                <!-- Toggle Group pour Part/Statistiques -->
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/toggleButtonStats"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:singleSelection="true"
+                    app:checkedButton="@id/btnStatistiques">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPart"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Part"
+                        android:textAllCaps="false"
+                        android:textColor="@color/white"
+                        app:strokeColor="@color/white" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnStatistiques"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Statistiques"
+                        android:textAllCaps="false"
+                        android:textColor="@color/white"
+                        app:strokeColor="@color/white" />
+
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -282,8 +315,7 @@
             android:id="@+id/rvFinanceList"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            tools:listitem="@layout/item_finance" />
+            android:layout_marginBottom="16dp" />
 
     </LinearLayout>
 

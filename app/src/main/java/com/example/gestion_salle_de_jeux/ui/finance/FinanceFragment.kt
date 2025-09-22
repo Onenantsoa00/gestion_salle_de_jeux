@@ -2,6 +2,7 @@ package com.example.gestion_salle_de_jeux.ui.finance
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -15,6 +16,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.gestion_salle_de_jeux.R
 import com.example.gestion_salle_de_jeux.data.AppDatabase
 import com.example.gestion_salle_de_jeux.databinding.FragmentFinanceBinding
+import com.example.gestion_salle_de_jeux.ui.finance.dialog.DiagrammesDialog
+import com.example.gestion_salle_de_jeux.ui.finance.dialog.PartDialog
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -48,6 +51,7 @@ class FinanceFragment : Fragment() {
 
         setupRecyclerView()
         setupClickListeners()
+        setupToggleGroup()
         observeData()
     }
 
@@ -55,6 +59,21 @@ class FinanceFragment : Fragment() {
         adapter = FinanceAdapter(emptyList())
         binding.rvFinanceList.layoutManager = LinearLayoutManager(requireContext())
         binding.rvFinanceList.adapter = adapter
+    }
+
+    private fun setupToggleGroup() {
+        binding.toggleButtonStats.addOnButtonCheckedListener { group, checkedId, isChecked ->
+            if (isChecked) {
+                when (checkedId) {
+                    R.id.btnPart -> {
+                        afficherPartDialog()
+                    }
+                    R.id.btnStatistiques -> {
+                        afficherDiagrammesDialog()
+                    }
+                }
+            }
+        }
     }
 
     private fun setupClickListeners() {
@@ -65,6 +84,37 @@ class FinanceFragment : Fragment() {
         binding.btnAjouterTransaction.setOnClickListener {
             addTransaction()
         }
+    }
+
+    private fun afficherPartDialog() {
+        val dialog = PartDialog.newInstance()
+        dialog.show(parentFragmentManager, "part_dialog")
+    }
+
+    private fun afficherDiagrammesDialog() {
+        val dialog = DiagrammesDialog.newInstance()
+        dialog.show(parentFragmentManager, "diagrammes_dialog")
+    }
+
+    private fun partagerStatistiques() {
+        val statsText = """
+            📊 Statistiques Financières - Salle de Jeux
+            
+            💰 Solde Total: ${binding.tvTotalSolde.text}
+            📈 Total Entrées: ${binding.tvTotalEntrees.text}
+            📉 Total Sorties: ${binding.tvTotalSorties.text}
+            
+            Généré par Gestion Salle de Jeux
+        """.trimIndent()
+
+        val shareIntent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, statsText)
+            type = "text/plain"
+        }
+
+        val share = Intent.createChooser(shareIntent, "Partager les statistiques")
+        startActivity(share)
     }
 
     private fun observeData() {
@@ -82,10 +132,10 @@ class FinanceFragment : Fragment() {
     }
 
     private fun updateStats(stats: FinanceViewModel.FinanceStats) {
-        binding.tvTotalEntrees.text = String.format(Locale.getDefault(), "%.0f FCFA", stats.totalEntrees)
-        binding.tvTotalSorties.text = String.format(Locale.getDefault(), "%.0f FCFA", stats.totalSorties)
+        binding.tvTotalEntrees.text = String.format(Locale.getDefault(), "%.0f Ariary", stats.totalEntrees)
+        binding.tvTotalSorties.text = String.format(Locale.getDefault(), "%.0f Ariary", stats.totalSorties)
 
-        val soldeText = String.format(Locale.getDefault(), "%.0f FCFA", stats.soldeTotal)
+        val soldeText = String.format(Locale.getDefault(), "%.0f Ariary", stats.soldeTotal)
         binding.tvTotalSolde.text = soldeText
 
         // Changer la couleur selon le solde

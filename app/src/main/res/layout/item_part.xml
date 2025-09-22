@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="12dp"
+    android:background="?attr/selectableItemBackground">
+
+    <!-- Colonne Mois -->
+    <TextView
+        android:id="@+id/tvMoisPart"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="Janvier 2024"
+        android:textColor="@color/texte"
+        android:textSize="12sp"
+        android:gravity="center" />
+
+    <!-- Colonne Total -->
+    <TextView
+        android:id="@+id/tvTotalPart"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="0 Ariary"
+        android:textColor="@color/green"
+        android:textSize="12sp"
+        android:gravity="center" />
+
+    <!-- Colonne Boss -->
+    <TextView
+        android:id="@+id/tvBossPart"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="0 Ariary"
+        android:textColor="@color/accent"
+        android:textSize="12sp"
+        android:gravity="center" />
+
+    <!-- Colonne Jetons -->
+    <TextView
+        android:id="@+id/tvJetonsPart"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="0 Ariary"
+        android:textColor="@color/blue"
+        android:textSize="12sp"
+        android:gravity="center" />
+
+    <!-- Colonne Matériel -->
+    <TextView
+        android:layout_width="0dp"
+        android:id="@+id/tvMaterielPart"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="0 Ariary"
+        android:textColor="@color/orange"
+        android:textSize="12sp"
+        android:gravity="center" />
+
+</LinearLayout>
