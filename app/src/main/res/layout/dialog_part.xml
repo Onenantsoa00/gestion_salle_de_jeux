@@ -18,73 +18,82 @@
         android:gravity="center"
         android:layout_marginBottom="16dp" />
 
-    <!-- En-têtes des colonnes -->
-    <LinearLayout
+    <!-- Scroll horizontal pour les colonnes -->
+    <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="8dp"
-        android:background="@color/accent"
-        android:padding="8dp">
+        android:layout_marginBottom="16dp"
+        android:scrollbars="none">
 
-        <TextView
-            android:layout_width="0dp"
+        <LinearLayout
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Mois"
-            android:textColor="@color/white"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:gravity="center" />
+            android:orientation="vertical">
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Total"
-            android:textColor="@color/white"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:gravity="center" />
+            <!-- En-têtes des colonnes -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:background="@color/accent"
+                android:padding="8dp">
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Boss"
-            android:textColor="@color/white"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:gravity="center" />
+                <TextView
+                    android:layout_width="150dp"
+                    android:layout_height="wrap_content"
+                    android:text="Mois"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:gravity="center" />
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Jetons"
-            android:textColor="@color/white"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:gravity="center" />
+                <TextView
+                    android:layout_width="120dp"
+                    android:layout_height="wrap_content"
+                    android:text="Total"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:gravity="center" />
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Matériel"
-            android:textColor="@color/white"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:gravity="center" />
+                <TextView
+                    android:layout_width="120dp"
+                    android:layout_height="wrap_content"
+                    android:text="Boss"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:gravity="center" />
 
-    </LinearLayout>
+                <TextView
+                    android:layout_width="120dp"
+                    android:layout_height="wrap_content"
+                    android:text="Jetons"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:gravity="center" />
 
-    <!-- Liste des mois - RecyclerView -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvPartList"
-        android:layout_width="match_parent"
-        android:layout_height="300dp"
-        android:layout_marginBottom="16dp" />
+                <TextView
+                    android:layout_width="120dp"
+                    android:layout_height="wrap_content"
+                    android:text="Matériel"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:gravity="center" />
+
+            </LinearLayout>
+
+            <!-- Liste des mois - RecyclerView avec largeur fixe -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvPartList"
+                android:layout_width="630dp"
+                android:layout_height="300dp" />
+
+        </LinearLayout>
+
+    </HorizontalScrollView>
 
     <!-- Ligne de séparation -->
     <View
@@ -94,68 +103,70 @@
         android:layout_marginBottom="8dp" />
 
     <!-- Totaux en bas -->
-    <LinearLayout
+    <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:background="@drawable/total_background"
-        android:padding="12dp">
+        android:scrollbars="none">
 
-        <TextView
-            android:layout_width="0dp"
+        <LinearLayout
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Total"
-            android:textColor="@color/texte"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:gravity="center" />
+            android:orientation="horizontal"
+            android:background="@drawable/total_background"
+            android:padding="12dp">
 
-        <TextView
-            android:id="@+id/tvTotalGeneral"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="0 Ariary"
-            android:textColor="@color/green"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:gravity="center" />
+            <TextView
+                android:layout_width="150dp"
+                android:layout_height="wrap_content"
+                android:text="Total"
+                android:textColor="@color/texte"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:gravity="center" />
 
-        <TextView
-            android:layout_width="0dp"
-            android:id="@+id/tvTotalBoss"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="0 Ariary"
-            android:textColor="@color/accent"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:gravity="center" />
+            <TextView
+                android:id="@+id/tvTotalGeneral"
+                android:layout_width="120dp"
+                android:layout_height="wrap_content"
+                android:text="0 Ariary"
+                android:textColor="@color/green"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:gravity="center" />
 
-        <TextView
-            android:id="@+id/tvTotalJetons"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="0 Ariary"
-            android:textColor="@color/blue"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:gravity="center" />
+            <TextView
+                android:id="@+id/tvTotalBoss"
+                android:layout_width="120dp"
+                android:layout_height="wrap_content"
+                android:text="0 Ariary"
+                android:textColor="@color/accent"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:gravity="center" />
 
-        <TextView
-            android:id="@+id/tvTotalMateriel"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="0 Ariary"
-            android:textColor="@color/orange"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:gravity="center" />
+            <TextView
+                android:id="@+id/tvTotalJetons"
+                android:layout_width="120dp"
+                android:layout_height="wrap_content"
+                android:text="0 Ariary"
+                android:textColor="@color/blue"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:gravity="center" />
 
-    </LinearLayout>
+            <TextView
+                android:id="@+id/tvTotalMateriel"
+                android:layout_width="120dp"
+                android:layout_height="wrap_content"
+                android:text="0 Ariary"
+                android:textColor="@color/orange"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:gravity="center" />
+
+        </LinearLayout>
+
+    </HorizontalScrollView>
 
     <!-- Bouton fermer -->
     <com.google.android.material.button.MaterialButton
