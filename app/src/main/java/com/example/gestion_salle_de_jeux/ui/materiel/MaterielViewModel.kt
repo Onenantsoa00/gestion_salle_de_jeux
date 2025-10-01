@@ -3,17 +3,16 @@ package com.example.gestion_salle_de_jeux.ui.materiel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.gestion_salle_de_jeux.data.dao.FinanceDao
 import com.example.gestion_salle_de_jeux.data.dao.MaterielDao
 import com.example.gestion_salle_de_jeux.data.entity.Materiel
-import com.example.gestion_salle_de_jeux.ui.finance.FinanceViewModel
-import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
-class MaterielViewModel (private val dao : MaterielDao) : ViewModel() {
+class MaterielViewModel(private val dao: MaterielDao) : ViewModel() {
 
-    fun addMateriel(console: String, nombre_manette : Short, nombre_television : Short, id_reserve : Int) {
-        // Implémentation de l'ajout de matériel
+    val allMateriel: Flow<List<Materiel>> = dao.getAllMateriel()
+
+    fun addMateriel(console: String, nombre_manette: Short, nombre_television: Short, id_reserve: Int) {
         viewModelScope.launch {
             dao.insertMateriel(
                 Materiel(

@@ -8,6 +8,7 @@ import androidx.room.Query
 import androidx.room.Update
 import com.example.gestion_salle_de_jeux.data.entity.Jeux
 import com.example.gestion_salle_de_jeux.data.entity.Materiel
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MaterielDao {
@@ -16,8 +17,8 @@ interface MaterielDao {
     suspend fun insertMateriel(materiel: Materiel)
 
     //read all
-    @Query("SELECT * FROM Materiel")
-    suspend fun getAllMateriel(): List<Materiel>
+    @Query("SELECT * FROM Materiel ORDER BY id DESC")
+    fun getAllMateriel(): Flow<List<Materiel>>
 
     //read by id
     @Query("SELECT * FROM Materiel WHERE id = :id")

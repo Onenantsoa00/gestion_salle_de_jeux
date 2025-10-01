@@ -6,15 +6,19 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.lifecycle.ViewModelProvider
 import com.example.gestion_salle_de_jeux.data.AppDatabase
 import com.example.gestion_salle_de_jeux.databinding.FragmentMaterielBinding
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 class MaterielFragment : Fragment() {
     private var _binding: FragmentMaterielBinding? = null
     private val binding get() = _binding!!
     private lateinit var viewModel: MaterielViewModel
+    private lateinit var materielAdapter: MaterielAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -34,7 +38,25 @@ class MaterielFragment : Fragment() {
         val viewModelFactory = MaterielViewModel.MaterielViewModelFactory(materielDao)
         viewModel = ViewModelProvider(this, viewModelFactory)[MaterielViewModel::class.java]
 
+        setupRecyclerView()
         setupClickListeners()
+        observeMaterielList()
+    }
+
+    private fun setupRecyclerView() {
+        materielAdapter = MaterielAdapter(emptyList())
+        binding.rvMaterielList.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = materielAdapter
+        }
+    }
+
+    private fun observeMaterielList() {
+        lifecycleScope.launch {
+            viewModel.allMateriel.collect { materielList ->
+                materielAdapter.updateData(materielList)
+            }
+        }
     }
 
     private fun setupClickListeners() {
@@ -42,7 +64,6 @@ class MaterielFragment : Fragment() {
             addMateriel()
         }
 
-        // Vous pouvez ajouter les autres boutons plus tard
         binding.btnModifier.setOnClickListener {
             Toast.makeText(requireContext(), "Fonctionnalité à implémenter", Toast.LENGTH_SHORT).show()
         }
