@@ -1,53 +1,101 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
     app:cardElevation="4dp"
     app:cardCornerRadius="8dp">
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
         android:padding="16dp">
 
-        <TextView
-            android:id="@+id/tvMaterielId"
+        <!-- Layout pour les boutons d'action en haut à droite -->
+        <LinearLayout
+            android:id="@+id/layoutActions"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textStyle="bold"
-            android:textSize="16sp"
-            android:text="ID: "/>
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentTop="true"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-        <TextView
-            android:id="@+id/tvMaterielConsole"
-            android:layout_width="wrap_content"
+            <!-- Bouton Modifier -->
+            <ImageButton
+                android:id="@+id/btnEdit"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="6dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_edit"
+                android:contentDescription="Modifier"
+                tools:src="@android:drawable/ic_menu_edit" />
+
+            <!-- Bouton Supprimer -->
+            <ImageButton
+                android:id="@+id/btnDelete"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="6dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_delete"
+                android:contentDescription="Supprimer"
+                tools:src="@android:drawable/ic_menu_delete" />
+
+        </LinearLayout>
+
+        <!-- Layout pour les informations du matériel -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="16sp"
-            android:text="Console: "/>
+            android:layout_toStartOf="@id/layoutActions"
+            android:layout_alignParentTop="true"
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/tvMaterielManette"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="16sp"
-            android:text="Manettes: "/>
+            <TextView
+                android:id="@+id/tvMaterielId"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:text="ID: " />
 
-        <TextView
-            android:id="@+id/tvMaterielTelevision"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="16sp"
-            android:text="Télévisions: "/>
+            <TextView
+                android:id="@+id/tvMaterielConsole"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:text="Console: " />
 
-        <TextView
-            android:id="@+id/tvMaterielIdReserve"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="16sp"
-            android:text="ID Réservation: "/>
+            <TextView
+                android:id="@+id/tvMaterielManette"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:text="Manettes: " />
 
-    </LinearLayout>
+            <TextView
+                android:id="@+id/tvMaterielTelevision"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:text="Télévisions: " />
+
+            <TextView
+                android:id="@+id/tvMaterielIdReserve"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:text="ID Réservation: " />
+
+        </LinearLayout>
+
+    </RelativeLayout>
+
 </androidx.cardview.widget.CardView>

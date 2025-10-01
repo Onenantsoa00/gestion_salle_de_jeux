@@ -25,6 +25,18 @@ class MaterielViewModel(private val dao: MaterielDao) : ViewModel() {
         }
     }
 
+    fun updateMateriel(materiel: Materiel) {
+        viewModelScope.launch {
+            dao.updateMateriel(materiel)
+        }
+    }
+
+    fun deleteMateriel(materiel: Materiel) {
+        viewModelScope.launch {
+            dao.deleteMateriel(materiel)
+        }
+    }
+
     class MaterielViewModelFactory(private val dao: MaterielDao) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
