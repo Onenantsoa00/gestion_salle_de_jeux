@@ -9,6 +9,7 @@ import com.example.gestion_salle_de_jeux.data.converters.DateConverter
 import com.example.gestion_salle_de_jeux.data.dao.FinanceDao
 import com.example.gestion_salle_de_jeux.data.dao.JeuxDao
 import com.example.gestion_salle_de_jeux.data.dao.MaterielDao
+import com.example.gestion_salle_de_jeux.data.dao.PlayeurDao
 import com.example.gestion_salle_de_jeux.data.entity.Finance
 import com.example.gestion_salle_de_jeux.data.entity.Jeux
 import com.example.gestion_salle_de_jeux.data.entity.Materiel
@@ -26,6 +27,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun financeDao(): FinanceDao
     abstract fun jeuxDao(): JeuxDao
     abstract fun materielDao(): MaterielDao
+    abstract fun playeurDao(): PlayeurDao
 
     companion object {
         @Volatile

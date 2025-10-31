@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    app:cardBackgroundColor="@color/dashboard_card_background"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="0dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <ImageView
+            android:id="@+id/iv_console_icon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/status_indicator_dot"
+            android:backgroundTint="#4A4A5A"
+            android:padding="8dp"
+            android:src="@drawable/ic_console"
+            app:tint="@color/dashboard_text_secondary"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            tools:ignore="ContentDescription" />
+
+        <View
+            android:id="@+id/view_status_indicator"
+            android:layout_width="10dp"
+            android:layout_height="10dp"
+            android:background="@drawable/status_indicator_dot"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:backgroundTint="@color/dashboard_green" />
+
+        <TextView
+            android:id="@+id/tv_post_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:textColor="@color/dashboard_text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintStart_toEndOf="@id/iv_console_icon"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/tv_payment_status"
+            android:layout_marginEnd="8dp"
+            tools:text="Post 1 - PS5" />
+
+        <TextView
+            android:id="@+id/tv_player_names"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:textColor="@color/dashboard_text_secondary"
+            android:textSize="14sp"
+            app:layout_constraintStart_toStartOf="@id/tv_post_name"
+            app:layout_constraintTop_toBottomOf="@id/tv_post_name"
+            app:layout_constraintEnd_toEndOf="@id/tv_post_name"
+            tools:text="Laura - Davida" />
+
+        <TextView
+            android:id="@+id/tv_duration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:drawablePadding="4dp"
+            android:gravity="center_vertical"
+            android:textColor="@color/dashboard_text_secondary"
+            android:textSize="14sp"
+            app:layout_constraintStart_toStartOf="@id/tv_post_name"
+            app:layout_constraintTop_toBottomOf="@id/tv_player_names"
+            tools:text="40 : 50 min" />
+
+        <ImageView
+            android:id="@+id/iv_timer_control"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_marginStart="8dp"
+            android:src="@drawable/ic_pause"
+            app:tint="@color/dashboard_text_secondary"
+            app:layout_constraintStart_toEndOf="@id/tv_duration"
+            app:layout_constraintBottom_toBottomOf="@id/tv_duration"
+            app:layout_constraintTop_toTopOf="@id/tv_duration"
+            tools:ignore="ContentDescription" />
+
+        <TextView
+            android:id="@+id/tv_payment_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/dashboard_text_secondary"
+            android:textSize="12sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/view_status_indicator"
+            android:layout_marginTop="4dp"
+            tools:text="2 000 Ariary - Payé" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>

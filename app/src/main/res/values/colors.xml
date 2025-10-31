@@ -46,4 +46,13 @@
     <color name="blue">#3B82F6</color>
     <color name="orange">#F59E0B</color>
 
+    <color name="dashboard_background">#212131</color>
+    <color name="dashboard_card_background">#2C2C3A</color>
+    <color name="dashboard_text_primary">#FFFFFF</color>
+    <color name="dashboard_text_secondary">#B0B0B0</color>
+    <color name="dashboard_green">#4CAF50</color>
+    <color name="dashboard_green_light">#3E4C49</color> <color name="dashboard_red">#F44336</color>
+    <color name="dashboard_red_light">#4F3F44</color> <color name="dashboard_blue">#2196F3</color>
+    <color name="dashboard_blue_light">#3A4B5F</color> <color name="dashboard_yellow">#FFEB3B</color>
+
 </resources>

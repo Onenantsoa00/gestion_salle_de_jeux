@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Nouvelle Session de Jeu"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Sélection du jeu -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:id="@+id/tilGameSelection"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+
+            <AutoCompleteTextView
+                android:id="@+id/actvGameSelection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Sélectionner un jeu"
+                android:textColor="@color/texte" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Type de jeu (lecture seule) -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilGameType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etGameType"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Type de jeu"
+                android:focusable="false"
+                android:clickable="false"
+                android:textColor="@color/texte" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Argent à miser -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etAmount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Argent à miser (Ariary)"
+                android:inputType="number"
+                android:textColor="@color/texte" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Nom du joueur -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etPlayerName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Nom du joueur"
+                android:textColor="@color/texte" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Informations de conversion -->
+        <TextView
+            android:id="@+id/tvConversionInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="400 Ariary = 10 minutes"
+            android:textSize="14sp"
+            android:textStyle="italic"
+            android:textColor="@color/teal_700"
+            android:gravity="center"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Temps calculé -->
+        <TextView
+            android:id="@+id/tvCalculatedTime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Temps: 0 minutes"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="16dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end">
+
+            <Button
+                android:id="@+id/btnCancel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Annuler"
+                android:layout_marginEnd="8dp"
+                style="@style/Widget.MaterialComponents.Button.TextButton" />
+
+            <Button
+                android:id="@+id/btnStart"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Démarrer"
+                app:backgroundTint="@color/accent" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>

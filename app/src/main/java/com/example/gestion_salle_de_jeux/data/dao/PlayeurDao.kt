@@ -8,12 +8,11 @@ import androidx.room.Query
 import androidx.room.Update
 import com.example.gestion_salle_de_jeux.data.entity.Materiel
 import com.example.gestion_salle_de_jeux.data.entity.Playeur
-
 @Dao
-interface PlayeurDao{
-    //insert
+interface PlayeurDao {
+    //insert - doit retourner Long
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertPlayeur(playeur: Playeur)
+    suspend fun insertPlayeur(playeur: Playeur): Long // ← Important: retourne Long
 
     //read all
     @Query("SELECT * FROM Playeur")
@@ -25,7 +24,7 @@ interface PlayeurDao{
 
     //update
     @Update
-    suspend fun updatePlayeur(playeur: Playeur):Int
+    suspend fun updatePlayeur(playeur: Playeur): Int
 
     //update by id
     @Query("UPDATE Playeur SET nom_playeur = :nom_playeur WHERE id = :id")

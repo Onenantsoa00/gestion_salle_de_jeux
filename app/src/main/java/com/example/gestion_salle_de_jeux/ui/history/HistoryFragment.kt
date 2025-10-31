@@ -28,17 +28,7 @@ class HistoryFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
-        binding.btnPowerOutage.setOnClickListener {
-            // Gérer la coupure de courant
-        }
 
-        binding.btnTournamentMode.setOnClickListener {
-            // Activer le mode tournoi
-        }
-
-        binding.switchDarkMode.setOnCheckedChangeListener { _, isChecked ->
-            // Changer le thème sombre/clair
-        }
     }
 
     override fun onDestroyView() {

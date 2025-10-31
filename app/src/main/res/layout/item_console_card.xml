@@ -11,7 +11,22 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="16dp"
+        android:background="@drawable/card_background">
+
+        <!-- Numéro du poste -->
+        <TextView
+            android:id="@+id/tvPostNumber"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Poste 1"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/purple_700"
+            android:gravity="center"
+            android:layout_marginBottom="4dp"
+            android:drawablePadding="4dp"
+            android:drawableStart="@drawable/ic_desk" />
 
         <TextView
             android:id="@+id/tvConsoleName"
@@ -21,26 +36,26 @@
             android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="@color/design_default_color_primary_dark"
-            android:layout_marginBottom="8dp" />
+            android:gravity="center"
+            android:layout_marginBottom="12dp" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="4dp">
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_play"
-                android:contentDescription="Icône Joueur"
-                android:layout_marginEnd="8dp"/>
+            android:layout_marginBottom="6dp">
+
             <TextView
                 android:id="@+id/tvPlayerName"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Joueur: Jean Dupont"
-                android:textSize="16sp" />
+                android:layout_weight="1"
+                android:text="Manettes: 4"
+                android:textSize="14sp"
+                android:drawablePadding="4dp"
+                android:drawableStart="@drawable/ic_gamepad" />
+
         </LinearLayout>
 
         <LinearLayout
@@ -48,52 +63,42 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="4dp">
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_gamepad"
-                android:contentDescription="Icône Jeu"
-                android:layout_marginEnd="8dp"/>
+            android:layout_marginBottom="12dp">
+
             <TextView
                 android:id="@+id/tvGameName"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Jeu: Call of Duty"
-                android:textSize="16sp" />
+                android:layout_weight="1"
+                android:text="TVs: 2"
+                android:textSize="14sp"
+                android:drawablePadding="4dp"
+                android:drawableStart="@drawable/ic_tv" />
+
         </LinearLayout>
 
-        <LinearLayout
+        <TextView
+            android:id="@+id/tvTimerByMoney"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginTop="8dp">
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_timer"
-                android:contentDescription="Icône Minuteur"
-                android:layout_marginEnd="8dp"/>
-            <TextView
-                android:id="@+id/tvTimerByMoney"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Temps restant: 00:45 (5.00€)"
-                android:textSize="16sp"
-                android:textStyle="italic"
-                android:textColor="@color/teal_700" />
-        </LinearLayout>
+            android:text="Statut: Libre"
+            android:textSize="14sp"
+            android:textStyle="italic"
+            android:gravity="center"
+            android:textColor="@color/teal_700"
+            android:layout_marginBottom="8dp"
+            android:drawablePadding="4dp"
+            android:drawableStart="@drawable/ic_timer" />
 
         <Button
             android:id="@+id/btnConsoleAction"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="4dp"
             android:text="Démarrer / Arrêter"
-            android:backgroundTint="@color/purple_500"
             android:textColor="@android:color/white"
-            style="@style/Widget.AppCompat.Button.Colored"/>
+            android:textSize="12sp"
+            style="@style/Widget.MaterialComponents.Button"/>
 
     </LinearLayout>
 </androidx.cardview.widget.CardView>
