@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    app:cardBackgroundColor="@color/dashboard_card_background"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="0dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp">
+
+        <!-- Icône de gauche -->
+        <ImageView
+            android:id="@+id/iv_history_icon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_history_icon"
+            android:padding="8dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/dashboard_text_secondary"
+            tools:ignore="ContentDescription"
+            tools:src="@drawable/ic_power" />
+
+        <!-- Bouton Supprimer -->
+        <ImageView
+            android:id="@+id/iv_delete_icon"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:background="@drawable/bg_delete_icon"
+            android:padding="6dp"
+            android:src="@drawable/ic_delete"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/dashboard_text_primary"
+            tools:ignore="ContentDescription" />
+
+        <!-- Titre -->
+        <TextView
+            android:id="@+id/tv_history_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="8dp"
+            android:textColor="@color/dashboard_text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toStartOf="@id/iv_delete_icon"
+            app:layout_constraintStart_toEndOf="@id/iv_history_icon"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/tv_history_subtitle"
+            app:layout_constraintVertical_chainStyle="packed"
+            tools:text="Coupure Electriciter" />
+
+        <!-- Sous-titre -->
+        <TextView
+            android:id="@+id/tv_history_subtitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:textColor="@color/dashboard_text_secondary"
+            android:textSize="14sp"
+            app:layout_constraintEnd_toEndOf="@id/tv_history_title"
+            app:layout_constraintStart_toStartOf="@id/tv_history_title"
+            app:layout_constraintTop_toBottomOf="@id/tv_history_title"
+            app:layout_constraintBottom_toBottomOf="parent"
+            tools:text="12:00 à 12:34" />
+
+        <!-- Timestamp (en haut à droite du titre) -->
+        <TextView
+            android:id="@+id/tv_history_timestamp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/dashboard_text_secondary"
+            android:textSize="12sp"
+            app:layout_constraintEnd_toEndOf="@id/tv_history_title"
+            app:layout_constraintTop_toTopOf="@id/tv_history_title"
+            app:layout_constraintBottom_toBottomOf="@id/tv_history_title"
+            tools:text="23-10-2025 à 12:00" />
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>

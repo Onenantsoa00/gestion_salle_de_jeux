@@ -9,25 +9,34 @@ import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.GridLayoutManager
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.gestion_salle_de_jeux.R
 import com.example.gestion_salle_de_jeux.data.AppDatabase
 import com.example.gestion_salle_de_jeux.data.entity.Jeux
+import com.example.gestion_salle_de_jeux.data.entity.Materiel
 import com.example.gestion_salle_de_jeux.data.entity.Playeur
 import com.example.gestion_salle_de_jeux.databinding.DialogGameSessionBinding
 import com.example.gestion_salle_de_jeux.databinding.FragmentGameroomBinding
+import com.example.gestion_salle_de_jeux.ui.GameRoomFragment.model.GameSession
+import com.example.gestion_salle_de_jeux.ui.gameroom.GameRoomViewModel
 import com.example.gestion_salle_de_jeux.ui.materiel.MaterielViewModel
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-class GameRoomFragment : Fragment() {
+class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListener {
 
     private var _binding: FragmentGameroomBinding? = null
     private val binding get() = _binding!!
-    private lateinit var viewModel: MaterielViewModel
-    private lateinit var consoleAdapter: ConsoleAdapter
+
+    // Nouveaux ViewModel et Adapter pour la nouvelle UI
+    private lateinit var gameRoomViewModel: GameRoomViewModel
+    private lateinit var sessionAdapter: GameSessionAdapter // Cette ligne est maintenant correcte
+
+    // ViewModel existant pour la logique de démarrage de session
+    private lateinit var materielViewModel: MaterielViewModel
+
     private var jeuxList: List<Jeux> = emptyList()
 
     override fun onCreateView(
@@ -42,36 +51,112 @@ class GameRoomFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Initialisation du ViewModel
+        // Initialisation du ViewModel pour la liste des sessions (Nouvelle UI)
+        gameRoomViewModel = ViewModelProvider(this)[GameRoomViewModel::class.java]
+
+        // Initialisation du ViewModel pour le Matériel (Logique existante)
         val database = AppDatabase.getDatabase(requireContext())
         val materielDao = database.materielDao()
         val viewModelFactory = MaterielViewModel.MaterielViewModelFactory(materielDao)
-        viewModel = ViewModelProvider(this, viewModelFactory)[MaterielViewModel::class.java]
+        materielViewModel = ViewModelProvider(this, viewModelFactory)[MaterielViewModel::class.java]
 
         setupRecyclerView()
         setupClickListeners()
-        observeConsoles()
-        loadGames()
+        observeViewModel()
+        loadGames() // Charge la liste des jeux pour le dialogue
     }
 
     private fun setupRecyclerView() {
-        consoleAdapter = ConsoleAdapter(
-            emptyList(),
-            onConsoleClick = { materiel ->
-                // Ouvrir le dialogue de session de jeu
-                showGameSessionDialog(materiel)
-            },
-            onActionClick = { materiel ->
-                // Action pour démarrer/arrêter la session
-                startGameSession(materiel)
-            }
-        )
-
-        binding.rvConsoles.apply {
-            layoutManager = GridLayoutManager(requireContext(), 2)
-            adapter = consoleAdapter
+        sessionAdapter = GameSessionAdapter(this) // 'this' implémente l'interface
+        binding.rvGameSessions.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = sessionAdapter
         }
     }
+
+    private fun observeViewModel() {
+        // Observe les sessions actives (factices pour l'instant)
+        // Cette ligne est maintenant correcte car le type de 'sessions' peut être déduit
+        gameRoomViewModel.gameSessions.observe(viewLifecycleOwner) { sessions ->
+            sessionAdapter.submitList(sessions)
+        }
+
+        // TODO: Vous devrez remplacer les données factices par de vraies données
+        // en observant votre base de données (probablement les 'Jeux' actifs)
+    }
+
+    private fun setupClickListeners() {
+        // Bouton '+' flottant
+        binding.fabAddSession.setOnClickListener {
+            showAvailableConsolesDialog()
+        }
+
+        // Toggle de coupure de courant
+        binding.switchPowerCut.setOnCheckedChangeListener { _, isChecked ->
+            val status = if (isChecked) "Rétabli" else "Coupure"
+            Toast.makeText(requireContext(), "Électricité : $status", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun showAvailableConsolesDialog() {
+        lifecycleScope.launch {
+            // Récupérer tout le matériel
+            val allMateriel = materielViewModel.allMateriel.first()
+
+            // TODO: Filtrer le matériel qui est déjà dans une session active
+            // Pour l'instant, nous utilisons la logique 'id_reserve == 0' de votre ancien code
+            val availableMateriel = allMateriel.filter { it.id_reserve == 0 }
+
+            if (availableMateriel.isEmpty()) {
+                Toast.makeText(requireContext(), "Aucun poste libre", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+
+            val consoleNames = availableMateriel.map { "Poste ${it.id} - ${it.console}" }.toTypedArray()
+
+            AlertDialog.Builder(requireContext())
+                .setTitle("Choisir un poste")
+                .setItems(consoleNames) { dialog, which ->
+                    val selectedMateriel = availableMateriel[which]
+                    showGameSessionDialog(selectedMateriel) // Ouvre votre dialogue existant
+                    dialog.dismiss()
+                }
+                .setNegativeButton("Annuler") { dialog, _ ->
+                    dialog.dismiss()
+                }
+                .show()
+        }
+    }
+
+    // --- INTERFACE CALLBACKS ---
+    override fun onPlayPauseClicked(session: GameSession) {
+        Toast.makeText(requireContext(), "Play/Pause: ${session.postName}", Toast.LENGTH_SHORT).show()
+        gameRoomViewModel.onPlayPauseClicked(session)
+    }
+
+    override fun onStopClicked(session: GameSession) {
+        Toast.makeText(requireContext(), "Stop: ${session.postName}", Toast.LENGTH_SHORT).show()
+        gameRoomViewModel.onStopClicked(session)
+    }
+
+    override fun onAddTimeClicked(session: GameSession) {
+        Toast.makeText(requireContext(), "Ajout temps: ${session.postName}", Toast.LENGTH_SHORT).show()
+        gameRoomViewModel.onAddTimeClicked(session)
+    }
+
+    override fun onPaymentClicked(session: GameSession) {
+        Toast.makeText(requireContext(), "Paiement: ${session.postName}", Toast.LENGTH_SHORT).show()
+        gameRoomViewModel.onPaymentClicked(session)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
+    // ===================================================================
+    //  LOGIQUE DE DIALOGUE EXISTANTE (Conservée de votre ancien fichier)
+    // ===================================================================
 
     private fun loadGames() {
         lifecycleScope.launch {
@@ -85,13 +170,10 @@ class GameRoomFragment : Fragment() {
         }
     }
 
-    private fun showGameSessionDialog(materiel: com.example.gestion_salle_de_jeux.data.entity.Materiel) {
+    private fun showGameSessionDialog(materiel: Materiel) {
         val dialogBinding = DialogGameSessionBinding.inflate(LayoutInflater.from(requireContext()))
 
-        // Configuration de l'AutoCompleteTextView pour les jeux
         setupGameAutoComplete(dialogBinding.actvGameSelection, dialogBinding.etGameType)
-
-        // Configuration de la conversion argent/temps
         setupAmountToTimeConversion(dialogBinding)
 
         val dialog = AlertDialog.Builder(requireContext())
@@ -135,8 +217,6 @@ class GameRoomFragment : Fragment() {
                 calculateAndDisplayTime(dialogBinding)
             }
         }
-
-        // Écouteur pour les changements de texte en temps réel
         dialogBinding.etAmount.setOnKeyListener { _, _, _ ->
             calculateAndDisplayTime(dialogBinding)
             false
@@ -151,7 +231,6 @@ class GameRoomFragment : Fragment() {
                 val minutes = (amount / 400.0 * 10).toInt()
                 dialogBinding.tvCalculatedTime.text = "Temps: ${minutes} minutes"
 
-                // Afficher un message si le montant est insuffisant
                 if (amount < 400) {
                     dialogBinding.tvCalculatedTime.text = "Minimum 400 Ariary (10 min)"
                     dialogBinding.tvCalculatedTime.setTextColor(
@@ -186,19 +265,16 @@ class GameRoomFragment : Fragment() {
             dialogBinding.actvGameSelection.requestFocus()
             return false
         }
-
         if (amount.isEmpty()) {
             Toast.makeText(requireContext(), "Veuillez entrer un montant", Toast.LENGTH_SHORT).show()
             dialogBinding.etAmount.requestFocus()
             return false
         }
-
         if (playerName.isEmpty()) {
             Toast.makeText(requireContext(), "Veuillez entrer le nom du joueur", Toast.LENGTH_SHORT).show()
             dialogBinding.etPlayerName.requestFocus()
             return false
         }
-
         val amountValue = try {
             amount.toInt()
         } catch (e: NumberFormatException) {
@@ -206,66 +282,55 @@ class GameRoomFragment : Fragment() {
             dialogBinding.etAmount.requestFocus()
             return false
         }
-
         if (amountValue < 400) {
             Toast.makeText(requireContext(), "Le montant minimum est de 400 Ariary", Toast.LENGTH_SHORT).show()
             dialogBinding.etAmount.requestFocus()
             return false
         }
-
         return true
     }
 
-    private fun startGameSessionFromDialog(materiel: com.example.gestion_salle_de_jeux.data.entity.Materiel, dialogBinding: DialogGameSessionBinding) {
+    private fun startGameSessionFromDialog(materiel: Materiel, dialogBinding: DialogGameSessionBinding) {
         lifecycleScope.launch {
             try {
                 val database = AppDatabase.getDatabase(requireContext())
-
-                // Récupérer les données du formulaire
                 val selectedGameTitle = dialogBinding.actvGameSelection.text.toString().trim()
                 val amount = dialogBinding.etAmount.text.toString().toInt()
                 val playerName = dialogBinding.etPlayerName.text.toString().trim()
-
-                // Trouver le jeu sélectionné
                 val selectedGame = jeuxList.find { it.titre == selectedGameTitle }
 
                 if (selectedGame != null) {
-                    // Créer un nouveau joueur
                     val newPlayer = Playeur(
                         nom = playerName,
-                        prenom = "", // Vous pouvez ajouter un champ prénom si nécessaire
-                        id_tournoi = 0 // 0 si pas de tournoi
+                        prenom = "",
+                        id_tournoi = 0
                     )
-
-                    // CORRECTION : insertPlayeur retourne un Long, on le convertit en Int
                     val playerId = database.playeurDao().insertPlayeur(newPlayer).toInt()
 
-                    // TODO: Créer une entrée finance si nécessaire
-                    // val finance = Finance(montant = amount, date = LocalDateTime.now(), ...)
-                    // val financeId = database.financeDao().insertFinance(finance).toInt()
+                    // TODO: Gérer la finance ici
 
-                    // Créer la session de jeu
                     val gameSession = Jeux(
                         titre = selectedGame.titre,
                         type = selectedGame.type,
                         id_playeur = playerId,
                         id_materiel = materiel.id,
-                        id_finance = 0 // Remplacez par l'ID finance créé
+                        id_finance = 0 // TODO: Mettre l'ID finance
                     )
-
+                    // TODO: Vous devez obtenir l'ID du 'Jeu' inséré
                     database.jeuxDao().insertJeux(gameSession)
 
-                    // Mettre à jour le matériel comme réservé
-                    val updatedMateriel = materiel.copy(id_reserve = gameSession.id)
-                    database.materielDao().updateMateriel(updatedMateriel)
+                    // TODO: Mettre à jour le matériel avec l'ID du 'Jeu'
+                    // val insertedGameId = ... (vous devez le récupérer)
+                    // val updatedMateriel = materiel.copy(id_reserve = insertedGameId)
+                    // database.materielDao().updateMateriel(updatedMateriel)
 
                     Toast.makeText(requireContext(),
-                        "Session démarrée avec succès!\n$playerName joue à ${selectedGame.titre}",
+                        "Session démarrée avec succès!",
                         Toast.LENGTH_LONG
                     ).show()
 
-                    // Recharger les données pour mettre à jour l'interface
-                    observeConsoles()
+                    // Recharger les vraies données (pas juste les factices)
+                    // (votre `observeViewModel` devrait idéalement écouter un `Flow` de Room)
 
                 } else {
                     Toast.makeText(requireContext(), "Jeu non trouvé", Toast.LENGTH_SHORT).show()
@@ -275,61 +340,5 @@ class GameRoomFragment : Fragment() {
                 e.printStackTrace()
             }
         }
-    }
-
-    private fun observeConsoles() {
-        lifecycleScope.launch {
-            try {
-                viewModel.allMateriel.collect { materielList ->
-                    consoleAdapter.updateData(materielList)
-                }
-            } catch (e: Exception) {
-                Toast.makeText(requireContext(), "Erreur chargement consoles: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    private fun setupClickListeners() {
-        binding.btnAddConsole.setOnClickListener {
-            Toast.makeText(requireContext(), "Ajouter une nouvelle console", Toast.LENGTH_SHORT).show()
-            // Navigation vers le fragment d'ajout de matériel
-            // val navController = findNavController()
-            // navController.navigate(R.id.action_gameRoomFragment_to_materielFragment)
-        }
-
-        binding.switchPower.setOnCheckedChangeListener { _, isChecked ->
-            val status = if (isChecked) "Activé" else "Désactivé"
-            binding.tvPowerStatus.text = "Alimentation: $status"
-            Toast.makeText(requireContext(), "Coupure de courant $status", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun startGameSession(materiel: com.example.gestion_salle_de_jeux.data.entity.Materiel) {
-        // Cette méthode peut être utilisée pour d'autres actions
-        // Par exemple, arrêter une session en cours
-        if (materiel.id_reserve != 0) {
-            lifecycleScope.launch {
-                try {
-                    val database = AppDatabase.getDatabase(requireContext())
-
-                    // Réinitialiser le matériel
-                    val updatedMateriel = materiel.copy(id_reserve = 0)
-                    database.materielDao().updateMateriel(updatedMateriel)
-
-                    Toast.makeText(requireContext(), "Session arrêtée: ${materiel.console}", Toast.LENGTH_SHORT).show()
-                    observeConsoles()
-                } catch (e: Exception) {
-                    Toast.makeText(requireContext(), "Erreur: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            }
-        } else {
-            // Si la console est libre, ouvrir le dialogue
-            showGameSessionDialog(materiel)
-        }
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
     }
 }

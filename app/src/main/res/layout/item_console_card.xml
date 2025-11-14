@@ -1,104 +1,169 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
-    app:cardElevation="4dp"
-    app:cardCornerRadius="8dp">
+    android:layout_marginBottom="12dp"
+    app:cardBackgroundColor="@color/dashboard_card_background"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp"
-        android:background="@drawable/card_background">
-
-        <!-- Numéro du poste -->
-        <TextView
-            android:id="@+id/tvPostNumber"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Poste 1"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="@color/purple_700"
-            android:gravity="center"
-            android:layout_marginBottom="4dp"
-            android:drawablePadding="4dp"
-            android:drawableStart="@drawable/ic_desk" />
+        android:padding="16dp">
 
         <TextView
-            android:id="@+id/tvConsoleName"
-            android:layout_width="match_parent"
+            android:id="@+id/tv_post_name"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Console Xbox Series X"
+            android:textColor="@color/dashboard_text_primary"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="@color/design_default_color_primary_dark"
-            android:gravity="center"
-            android:layout_marginBottom="12dp" />
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="Poste 1 : PS5" />
+
+        <View
+            android:id="@+id/view_status_indicator"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:background="@drawable/status_indicator_dot"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/tv_post_name"
+            app:layout_constraintBottom_toBottomOf="@id/tv_post_name"
+            tools:backgroundTint="@color/dashboard_green" />
+
+        <ImageView
+            android:id="@+id/iv_status_icon"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:src="@drawable/ic_warning"
+            app:tint="@color/dashboard_yellow"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/tv_post_name"
+            app:layout_constraintBottom_toBottomOf="@id/tv_post_name"
+            tools:visibility="visible"
+            tools:ignore="ContentDescription" />
 
         <LinearLayout
-            android:layout_width="match_parent"
+            android:id="@+id/session_info_layout"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="6dp">
+            android:layout_marginTop="8dp"
+            android:orientation="vertical"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tv_post_name"
+            app:layout_constraintEnd_toEndOf="parent">
 
             <TextView
-                android:id="@+id/tvPlayerName"
-                android:layout_width="0dp"
+                android:id="@+id/tv_game_name"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Manettes: 4"
+                android:textColor="@color/dashboard_text_secondary"
                 android:textSize="14sp"
-                android:drawablePadding="4dp"
-                android:drawableStart="@drawable/ic_gamepad" />
+                tools:text="Jeu : PES" />
+
+            <TextView
+                android:id="@+id/tv_player_names"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/dashboard_text_secondary"
+                android:textSize="14sp"
+                tools:text="Joueur : Davide - Laura" />
+
+            <TextView
+                android:id="@+id/tv_match_details"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/dashboard_text_secondary"
+                android:textSize="14sp"
+                tools:text="Nombre de match : 4 * 500 Ar = 2000 Ar" />
+
+            <TextView
+                android:id="@+id/tv_time_remaining"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/dashboard_text_secondary"
+                android:textSize="14sp"
+                tools:text="Temps restant :" />
 
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/controls_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:layout_marginTop="16dp"
             android:gravity="center_vertical"
-            android:layout_marginBottom="12dp">
+            android:orientation="horizontal"
+            app:layout_constraintTop_toBottomOf="@id/session_info_layout">
 
             <TextView
-                android:id="@+id/tvGameName"
-                android:layout_width="0dp"
+                android:id="@+id/btn_payment_status"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="TVs: 2"
-                android:textSize="14sp"
-                android:drawablePadding="4dp"
-                android:drawableStart="@drawable/ic_tv" />
+                android:background="@drawable/bg_status_paid"
+                android:paddingStart="12dp"
+                android:paddingTop="6dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="6dp"
+                android:textColor="@color/dashboard_text_primary"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                tools:text="Payé" />
+
+            <ImageView
+                android:id="@+id/iv_add_time_small"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_control_button_grey"
+                android:padding="4dp"
+                android:src="@drawable/ic_add"
+                app:tint="@color/dashboard_text_secondary"
+                tools:ignore="ContentDescription" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <ImageView
+                android:id="@+id/iv_play_pause_control"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/bg_control_button_grey"
+                android:padding="8dp"
+                android:src="@drawable/ic_pause"
+                app:tint="@color/dashboard_text_primary"
+                tools:ignore="ContentDescription" />
+
+            <ImageView
+                android:id="@+id/iv_stop_control"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/bg_control_button_red"
+                android:padding="8dp"
+                android:src="@drawable/ic_stop"
+                app:tint="@color/dashboard_text_primary"
+                tools:ignore="ContentDescription" />
+
+            <ImageView
+                android:id="@+id/iv_add_time_large"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_control_button_grey"
+                android:padding="8dp"
+                android:src="@drawable/ic_timer"
+                app:tint="@color/dashboard_text_primary"
+                tools:ignore="ContentDescription" />
 
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/tvTimerByMoney"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Statut: Libre"
-            android:textSize="14sp"
-            android:textStyle="italic"
-            android:gravity="center"
-            android:textColor="@color/teal_700"
-            android:layout_marginBottom="8dp"
-            android:drawablePadding="4dp"
-            android:drawableStart="@drawable/ic_timer" />
-
-        <Button
-            android:id="@+id/btnConsoleAction"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Démarrer / Arrêter"
-            android:textColor="@android:color/white"
-            android:textSize="12sp"
-            style="@style/Widget.MaterialComponents.Button"/>
-
-    </LinearLayout>
-</androidx.cardview.widget.CardView>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</com.google.android.material.card.MaterialCardView>

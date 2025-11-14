@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <!-- J'utilise la même couleur grise que le fond de l'icône PS5 du dashboard -->
+    <solid android:color="#4A4A5A" />
+</shape>
