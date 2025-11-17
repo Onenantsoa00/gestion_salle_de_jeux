@@ -73,4 +73,6 @@ dependencies {
 
     // Pour le graphique (une seule ligne suffit)
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+
+    implementation ("com.github.PhilJay:MPAndroidChart:v3.1.0")
 }

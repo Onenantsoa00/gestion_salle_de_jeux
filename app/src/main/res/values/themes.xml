@@ -48,4 +48,47 @@
         <item name="android:windowEnterAnimation">@android:anim/fade_in</item>
         <item name="android:windowExitAnimation">@android:anim/fade_out</item>
     </style>
+
+    <style name="FinanceSummaryCardContent" parent="Widget.MaterialComponents.CardView">
+        <item name="android:orientation">vertical</item>
+        <item name="android:gravity">center</item>
+        <item name="android:padding">12dp</item>
+    </style>
+
+    <style name="FinanceSummaryCardTitle" parent="Widget.AppCompat.TextView">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">@color/dashboard_text_primary</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="FinanceSummaryCardAmount" parent="Widget.AppCompat.TextView">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">@color/dashboard_text_primary</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="FinanceSummaryCardChange" parent="Widget.AppCompat.TextView">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">@color/dashboard_text_secondary</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="FinanceFormEditText" parent="Widget.AppCompat.EditText">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:background">@drawable/bg_finance_edittext</item>
+        <item name="android:layout_marginBottom">12dp</item>
+        <item name="android:padding">16dp</item>
+        <item name="android:textColor">@color/dashboard_background</item>
+        <item name="android:textColorHint">@color/dashboard_text_secondary</item>
+    </style>
+
+    <style name="Widget.App.Button.Toggle" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:textColor">@color/dashboard_text_secondary</item>
+        <item name="strokeColor">@color/dashboard_text_secondary</item>
+    </style>
 </resources>

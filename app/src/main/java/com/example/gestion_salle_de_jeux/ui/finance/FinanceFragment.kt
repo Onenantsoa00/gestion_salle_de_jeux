@@ -1,41 +1,37 @@
 package com.example.gestion_salle_de_jeux.ui.finance
 
+import android.R
 import android.app.DatePickerDialog
-import android.app.TimePickerDialog
-import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
-import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.gestion_salle_de_jeux.R
-import com.example.gestion_salle_de_jeux.data.AppDatabase
+import androidx.lifecycle.ViewModelProvider
 import com.example.gestion_salle_de_jeux.databinding.FragmentFinanceBinding
-import com.example.gestion_salle_de_jeux.ui.finance.dialog.DiagrammesDialog
-import com.example.gestion_salle_de_jeux.ui.finance.dialog.PartDialog
-import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
+import com.github.mikephil.charting.charts.LineChart
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
 import java.util.Calendar
-import java.util.Date
-import java.util.Locale
+
 
 class FinanceFragment : Fragment() {
+
     private var _binding: FragmentFinanceBinding? = null
     private val binding get() = _binding!!
-    private lateinit var viewModel: FinanceViewModel
-    private var selectedDate: Date? = null
-    private lateinit var adapter: FinanceAdapter
+
+    private lateinit var financeViewModel: FinanceViewModel
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+        financeViewModel = ViewModelProvider(this).get(FinanceViewModel::class.java)
         _binding = FragmentFinanceBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -43,171 +39,90 @@ class FinanceFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Initialisation
-        val database = AppDatabase.getDatabase(requireContext())
-        val financeDao = database.financeDao()
-        val viewModelFactory = FinanceViewModel.FinanceViewModelFactory(financeDao)
-        viewModel = viewModels<FinanceViewModel> { viewModelFactory }.value
-
-        setupRecyclerView()
+        setupChart()
+        setupForm()
         setupClickListeners()
-        setupToggleGroup()
-        observeData()
+        observeViewModel()
     }
 
-    private fun setupRecyclerView() {
-        adapter = FinanceAdapter(emptyList())
-        binding.rvFinanceList.layoutManager = LinearLayoutManager(requireContext())
-        binding.rvFinanceList.adapter = adapter
+    private fun setupChart() {
+        binding.lineChart.apply {
+            description.isEnabled = false
+            legend.isEnabled = false
+            axisLeft.textColor = Color.WHITE
+            axisRight.isEnabled = false
+            xAxis.textColor = Color.WHITE
+            setTouchEnabled(true)
+            isDragEnabled = true
+            setScaleEnabled(true)
+        }
     }
 
-    private fun setupToggleGroup() {
-        binding.toggleButtonStats.addOnButtonCheckedListener { group, checkedId, isChecked ->
-            if (isChecked) {
-                when (checkedId) {
-                    R.id.btnPart -> {
-                        afficherPartDialog()
-                    }
-                    R.id.btnStatistiques -> {
-                        afficherDiagrammesDialog()
-                    }
-                }
-            }
+    private fun setupForm() {
+        // Configurer le dropdown "Retirer de"
+        val sources = arrayOf("Boss", "Materiel", "Jeton", "Autre")
+        val adapter = ArrayAdapter(requireContext(), R.layout.simple_dropdown_item_1line, sources)
+        binding.etSource.setAdapter(adapter)
+        binding.etSource.setTextColor(Color.BLACK) // Les dropdowns sont parfois difficiles à styliser
+
+        // Configurer le sélecteur de date
+        binding.etDate.setOnClickListener {
+            showDatePicker()
         }
     }
 
     private fun setupClickListeners() {
-        binding.btnDateHeure.setOnClickListener {
-            showDateTimePicker()
+        binding.btnValidate.setOnClickListener {
+            // TODO: Appeler le ViewModel pour valider
+            Toast.makeText(requireContext(), "Dépense validée (Logique à implémenter)", Toast.LENGTH_SHORT).show()
         }
 
-        binding.btnAjouterTransaction.setOnClickListener {
-            addTransaction()
-        }
-    }
-
-    private fun afficherPartDialog() {
-        val dialog = PartDialog.newInstance()
-        dialog.show(parentFragmentManager, "part_dialog")
-    }
-
-    private fun afficherDiagrammesDialog() {
-        val dialog = DiagrammesDialog.newInstance()
-        dialog.show(parentFragmentManager, "diagrammes_dialog")
-    }
-
-    private fun partagerStatistiques() {
-        val statsText = """
-            📊 Statistiques Financières - Salle de Jeux
-            
-            💰 Solde Total: ${binding.tvTotalSolde.text}
-            📈 Total Entrées: ${binding.tvTotalEntrees.text}
-            📉 Total Sorties: ${binding.tvTotalSorties.text}
-            
-            Généré par Gestion Salle de Jeux
-        """.trimIndent()
-
-        val shareIntent = Intent().apply {
-            action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TEXT, statsText)
-            type = "text/plain"
-        }
-
-        val share = Intent.createChooser(shareIntent, "Partager les statistiques")
-        startActivity(share)
-    }
-
-    private fun observeData() {
-        lifecycleScope.launch {
-            viewModel.finances.collect { finances ->
-                adapter.updateData(finances)
-            }
-        }
-
-        lifecycleScope.launch {
-            viewModel.stats.collect { stats ->
-                updateStats(stats)
-            }
+        binding.btnDetails.setOnClickListener {
+            // TODO: Naviguer vers un écran de détails
+            Toast.makeText(requireContext(), "Afficher les détails (Logique à implémenter)", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun updateStats(stats: FinanceViewModel.FinanceStats) {
-        binding.tvTotalEntrees.text = String.format(Locale.getDefault(), "%.0f Ariary", stats.totalEntrees)
-        binding.tvTotalSorties.text = String.format(Locale.getDefault(), "%.0f Ariary", stats.totalSorties)
+    private fun observeViewModel() {
+        financeViewModel.weeklyBalance.observe(viewLifecycleOwner) { binding.tvWeeklyBalance.text = it }
+        financeViewModel.weeklyProfit.observe(viewLifecycleOwner) { binding.tvWeeklyProfit.text = it }
 
-        val soldeText = String.format(Locale.getDefault(), "%.0f Ariary", stats.soldeTotal)
-        binding.tvTotalSolde.text = soldeText
+        financeViewModel.bossBalance.observe(viewLifecycleOwner) { binding.tvBossBalance.text = it }
+        financeViewModel.bossChange.observe(viewLifecycleOwner) { binding.tvBossChange.text = it }
 
-        // Changer la couleur selon le solde
-        val color = if (stats.soldeTotal >= 0) {
-            ContextCompat.getColor(requireContext(), R.color.green)
-        } else {
-            ContextCompat.getColor(requireContext(), R.color.red)
+        financeViewModel.materielBalance.observe(viewLifecycleOwner) { binding.tvMaterielBalance.text = it }
+        financeViewModel.materielChange.observe(viewLifecycleOwner) { binding.tvMaterielChange.text = it }
+
+        financeViewModel.jetonBalance.observe(viewLifecycleOwner) { binding.tvJetonBalance.text = it }
+        financeViewModel.jetonChange.observe(viewLifecycleOwner) { binding.tvJetonChange.text = it }
+
+        financeViewModel.totalBalance.observe(viewLifecycleOwner) { binding.tvTotalBalance.text = it }
+
+        financeViewModel.chartData.observe(viewLifecycleOwner) { lineData ->
+            val dataSet = lineData.getDataSetByIndex(0) as LineDataSet
+            dataSet.color = ContextCompat.getColor(requireContext(), com.example.gestion_salle_de_jeux.R.color.dashboard_green)
+            dataSet.valueTextColor = Color.TRANSPARENT
+            dataSet.setDrawCircles(false)
+            dataSet.setDrawFilled(true)
+            dataSet.fillColor = ContextCompat.getColor(requireContext(), com.example.gestion_salle_de_jeux.R.color.dashboard_green)
+            dataSet.fillAlpha = 80
+            dataSet.mode = LineDataSet.Mode.CUBIC_BEZIER
+
+            binding.lineChart.data = lineData
+            binding.lineChart.invalidate()
         }
-        binding.tvTotalSolde.setTextColor(color)
     }
 
-    private fun showDateTimePicker() {
+    private fun showDatePicker() {
         val calendar = Calendar.getInstance()
-        val datePicker = DatePickerDialog(
-            requireContext(),
-            R.style.DatePickerTheme,
-            { _, year, month, dayOfMonth ->
-                val timePicker = TimePickerDialog(
-                    requireContext(),
-                    R.style.TimePickerTheme,
-                    { _, hourOfDay, minute ->
-                        calendar.set(year, month, dayOfMonth, hourOfDay, minute)
-                        selectedDate = calendar.time
-                        val format = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-                        binding.btnDateHeure.setText(format.format(selectedDate!!))
-                    },
-                    calendar.get(Calendar.HOUR_OF_DAY),
-                    calendar.get(Calendar.MINUTE),
-                    true
-                )
-                timePicker.show()
-            },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH)
-        )
-        datePicker.show()
-    }
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH)
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
 
-    private fun addTransaction() {
-        val montantEntrant = binding.etMontantEntrant.text.toString().toDoubleOrNull() ?: 0.0
-        val montantSortant = binding.etMontantSortant.text.toString().toDoubleOrNull() ?: 0.0
-        val description = binding.etDescription.text.toString().trim()
-
-        if (selectedDate == null) {
-            Toast.makeText(requireContext(), "Veuillez sélectionner une date", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        if (description.isEmpty()) {
-            Toast.makeText(requireContext(), "Veuillez saisir une description", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        if (montantEntrant == 0.0 && montantSortant == 0.0) {
-            Toast.makeText(requireContext(), "Veuillez saisir un montant entrant ou sortant", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        viewModel.addFinance(selectedDate!!, montantEntrant, montantSortant, description)
-
-        // Réinitialiser les champs
-        resetForm()
-        Toast.makeText(requireContext(), "Transaction ajoutée avec succès", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun resetForm() {
-        binding.etMontantEntrant.text?.clear()
-        binding.etMontantSortant.text?.clear()
-        binding.etDescription.text?.clear()
-        binding.btnDateHeure.setText("Sélectionner la date et l'heure")
-        selectedDate = null
+        DatePickerDialog(requireContext(), { _, selectedYear, selectedMonth, selectedDay ->
+            val date = "$selectedDay/${selectedMonth + 1}/$selectedYear"
+            binding.etDate.setText(date)
+        }, year, month, day).show()
     }
 
     override fun onDestroyView() {
