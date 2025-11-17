@@ -1,18 +1,15 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Theme.Gestion_salle_de_jeux" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
-        <!-- Secondary brand color. -->
+    <style name="Theme.Gestion_salle_de_jeux" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorSecondary">@color/teal_200</item>
         <item name="colorSecondaryVariant">@color/teal_200</item>
         <item name="colorOnSecondary">@color/black</item>
-        <!-- Status bar color. -->
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
-        <!-- Customize your theme here. -->
 
+        <item name="android:statusBarColor">@color/dashboard_background</item>
+        <item name="android:navigationBarColor">@color/dashboard_background</item>
         <item name="colorPrimary">@color/accent</item>
         <item name="colorPrimaryVariant">@color/accent</item>
         <item name="colorOnPrimary">@color/texte</item>
-        <item name="android:colorBackground">@color/fond_principal</item>
-        <item name="android:textColor">@color/texte</item>
+        <item name="android:colorBackground">@color/dashboard_background</item>
+        <item name="android:textColor">@color/dashboard_text_primary</item>
     </style>
 </resources>

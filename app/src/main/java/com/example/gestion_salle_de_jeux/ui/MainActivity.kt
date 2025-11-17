@@ -3,8 +3,6 @@ package com.example.gestion_salle_de_jeux.ui
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.fragment.NavHostFragment
-import androidx.navigation.ui.AppBarConfiguration
-import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.example.gestion_salle_de_jeux.R
 import com.example.gestion_salle_de_jeux.databinding.ActivityMainBinding
@@ -24,18 +22,12 @@ class MainActivity : AppCompatActivity() {
         ) as NavHostFragment
         val navController = navHostFragment.navController
 
-        // Configuration de la navigation
-        val appBarConfiguration = AppBarConfiguration(
-            setOf(
-                R.id.navigation_dashboard,
-                R.id.navigation_history,
-                R.id.navigation_game_room,
-                R.id.navigation_finance,
-                R.id.navigation_materiel
-            )
-        )
+        // --- CORRECTION ---
+        // Les lignes pour "AppBarConfiguration" et "setupActionBarWithNavController"
+        // ont été supprimées car le thème est maintenant "NoActionBar".
+        // --- FIN CORRECTION ---
 
-        setupActionBarWithNavController(navController, appBarConfiguration)
+        // On connecte uniquement la barre de navigation du bas
         binding.bottomNavigation.setupWithNavController(navController)
     }
 }

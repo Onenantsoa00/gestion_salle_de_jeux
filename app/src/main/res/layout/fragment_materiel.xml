@@ -1,123 +1,96 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/dashboard_background"
     android:padding="16dp"
-    android:background="@color/fond_principal">
+    tools:context=".ui.materiel.MaterielFragment">
 
-    <LinearLayout
+    <TextView
+        android:id="@+id/tv_header_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Gestion du Matériel"
+        android:textColor="@color/dashboard_text_primary"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:id="@+id/toggle_category"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:layout_marginTop="24dp"
+        app:checkedButton="@id/btn_tab_materiel"
+        app:layout_constraintTop_toBottomOf="@id/tv_header_title"
+        app:selectionRequired="true"
+        app:singleSelection="true">
 
-        <TextView
-            android:id="@+id/tvTitle"
-            android:layout_width="match_parent"
+        <Button
+            android:id="@+id/btn_tab_materiel"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Gestion du Matériel"
-            android:textColor="@color/texte"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:gravity="center"
-            android:layout_marginBottom="24dp" />
+            android:layout_weight="1"
+            android:text="Matériel"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            app:strokeColor="@color/white" />
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
+        <Button
+            android:id="@+id/btn_tab_jeux"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+            android:layout_weight="1"
+            android:text="Jeux"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            app:strokeColor="@color/dashboard_text_secondary" />
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etConsole"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Console (Ex: PlayStation 5)"
-                android:textColor="@color/texte" />
+    </com.google.android.material.button.MaterialButtonToggleGroup>
 
-        </com.google.android.material.textfield.TextInputLayout>
+    <ImageView
+        android:id="@+id/iv_logo_background"
+        android:layout_width="wrap_content"
+        android:layout_height="200dp"
+        android:alpha="0.1"
+        android:src="@drawable/font_flou"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:ignore="ContentDescription" />
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_materiel_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:clipToPadding="false"
+        android:paddingBottom="80dp"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toggle_category"
+        tools:listitem="@layout/list_item_materiel" />
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etNombreManette"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Nombre de manettes"
-                android:inputType="number"
-                android:textColor="@color/texte" />
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_add_materiel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        android:src="@drawable/ic_add"
+        app:backgroundTint="@color/dashboard_blue"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:maxImageSize="32dp"
+        app:tint="@color/dashboard_text_primary"
+        tools:ignore="ContentDescription" />
 
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etNombreTelevision"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Nombre de télévisions"
-                android:inputType="number"
-                android:textColor="@color/texte" />
-
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etIdReserve"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="ID de la réservation (optionnel)"
-                android:inputType="number"
-                android:textColor="@color/texte" />
-
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_horizontal"
-            android:layout_marginBottom="24dp">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnAjouter"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Ajouter"
-                android:layout_marginEnd="8dp"
-                app:backgroundTint="@color/accent" />
-
-        </LinearLayout>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Liste du Matériel"
-            android:textColor="@color/texte"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="12dp" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvMaterielList"
-            android:layout_width="match_parent"
-            android:layout_height="400dp"
-            tools:listitem="@layout/item_materiel" />
-
-    </LinearLayout>
-
-</ScrollView>
+</androidx.constraintlayout.widget.ConstraintLayout>
