@@ -16,28 +16,17 @@ class ConsoleAdapter(
     private var consoles: List<Materiel>,
     private val onConsoleClick: (Materiel) -> Unit,
     private val onActionClick: (Materiel) -> Unit
-    // Vous aurez probablement besoin de plus de listeners pour les boutons play/stop/add
 ) : RecyclerView.Adapter<ConsoleAdapter.ConsoleViewHolder>() {
 
-    /**
-     * Le ViewHolder fait maintenant référence aux IDs corrects de item_console_card.xml
-     */
     class ConsoleViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        // IDs corrigés
         val tvPostName: TextView = itemView.findViewById(R.id.tv_post_name)
         val tvGameName: TextView = itemView.findViewById(R.id.tv_game_name)
         val tvPlayerNames: TextView = itemView.findViewById(R.id.tv_player_names)
         val tvTimeRemaining: TextView = itemView.findViewById(R.id.tv_time_remaining)
         val tvMatchDetails: TextView = itemView.findViewById(R.id.tv_match_details)
-
-        // Indicateur de statut
         val statusIndicator: View = itemView.findViewById(R.id.view_status_indicator)
-
-        // Layout qui contient les infos (pour cacher/montrer)
         val sessionInfoLayout: LinearLayout = itemView.findViewById(R.id.session_info_layout)
-        val controlsLayout: LinearLayout = itemView.findViewById(R.id.controls_layout) // J'ai ajouté un ID au layout des contrôles dans le XML
-
-        // Boutons de contrôle (ImageViews)
+        val controlsLayout: LinearLayout = itemView.findViewById(R.id.controls_layout)
         val ivPlayPause: ImageView = itemView.findViewById(R.id.iv_play_pause_control)
         val ivStop: ImageView = itemView.findViewById(R.id.iv_stop_control)
         val ivAddTime: ImageView = itemView.findViewById(R.id.iv_add_time_large)
@@ -53,77 +42,66 @@ class ConsoleAdapter(
         val console = consoles[position]
         val postNumber = position + 1
 
-        // Logique de l'ancien adapter fusionnée :
-        holder.tvPostName.text = "Poste $postNumber : ${console.console}"
+        // CORRECTION ICI : on utilise 'console.nom' au lieu de 'console.console'
+        holder.tvPostName.text = "Poste $postNumber : ${console.nom}"
 
-        // Personnalisation basée sur la disponibilité
+        // CORRECTION : id_reserve fonctionne maintenant car on l'a remis dans l'Entité
         if (console.id_reserve != 0) {
-            // Console réservée/occupée
             setupOccupiedConsole(holder, console, postNumber)
         } else {
-            // Console libre
             setupAvailableConsole(holder, console, postNumber)
         }
     }
 
     private fun setupOccupiedConsole(holder: ConsoleViewHolder, console: Materiel, postNumber: Int) {
-        // Remplir les champs avec les données de la réservation (vous devrez les récupérer)
-        holder.tvGameName.text = "Jeu : PES" // Exemple statique
-        holder.tvPlayerNames.text = "Joueur : David - Laura" // Exemple statique
-        holder.tvMatchDetails.text = "Nombre de match : 4 * 500 Ar = 2000 Ar" // Exemple statique
+        // Exemple statique pour l'instant (à connecter plus tard à la table Reservation)
+        holder.tvGameName.text = "Jeu : PES"
+        holder.tvPlayerNames.text = "Joueur : David - Laura"
+        holder.tvMatchDetails.text = "Match en cours"
+
+        // CORRECTION : id_reserve est maintenant reconnu
         holder.tvTimeRemaining.text = "Occupée - ID: ${console.id_reserve}"
 
-        // Afficher les détails de la session et les contrôles
         holder.sessionInfoLayout.visibility = View.VISIBLE
         holder.controlsLayout.visibility = View.VISIBLE
 
-        // Changer la couleur du statut
-        val dotColor = ContextCompat.getColor(holder.itemView.context, R.color.dashboard_red) // Assurez-vous que cette couleur existe
+        val dotColor = ContextCompat.getColor(holder.itemView.context, R.color.dashboard_red)
         (holder.statusIndicator.background as? GradientDrawable)?.setColor(dotColor)
         holder.statusIndicator.background.setTint(dotColor)
 
-
-        // Configurer les boutons pour une session en cours
-        holder.ivPlayPause.setImageResource(R.drawable.ic_pause) // Mettre l'icône "Pause"
+        holder.ivPlayPause.setImageResource(R.drawable.ic_pause)
         holder.ivPlayPause.isEnabled = true
         holder.ivStop.isEnabled = true
         holder.ivAddTime.isEnabled = true
 
-        // Gérer les clics (vous devrez implémenter la logique)
         holder.ivPlayPause.setOnClickListener { /* Gérer la pause */ }
         holder.ivStop.setOnClickListener { /* Gérer l'arrêt */ }
         holder.ivAddTime.setOnClickListener { /* Gérer l'ajout de temps */ }
 
-        // La carte est cliquable pour voir les détails (comportement de l'ancien adapter)
         holder.itemView.setOnClickListener {
             onConsoleClick(console)
         }
     }
 
     private fun setupAvailableConsole(holder: ConsoleViewHolder, console: Materiel, postNumber: Int) {
-        // Cacher les infos de session et les contrôles, car la console est libre
         holder.sessionInfoLayout.visibility = View.GONE
         holder.controlsLayout.visibility = View.GONE
 
-        // Mettre à jour le texte du poste (déjà fait en partie)
-        holder.tvPostName.text = "Poste $postNumber : ${console.console} (Libre)"
+        // CORRECTION ICI : 'console.nom' au lieu de 'console.console'
+        holder.tvPostName.text = "Poste $postNumber : ${console.nom} (Libre)"
 
-        // Changer la couleur du statut en vert
-        val dotColor = ContextCompat.getColor(holder.itemView.context, R.color.dashboard_green) // Assurez-vous que cette couleur existe
+        val dotColor = ContextCompat.getColor(holder.itemView.context, R.color.dashboard_green)
         (holder.statusIndicator.background as? GradientDrawable)?.setColor(dotColor)
         holder.statusIndicator.background.setTint(dotColor)
 
-        // La carte entière agit comme le bouton "Démarrer"
         holder.itemView.isClickable = true
         holder.itemView.isEnabled = true
         holder.itemView.alpha = 1.0f
 
-        // onActionClick est l'action "Démarrer"
         holder.itemView.setOnClickListener {
             onActionClick(console)
         }
 
-        // Nettoyer les listeners des contrôles (car ils sont cachés)
         holder.ivPlayPause.setOnClickListener(null)
         holder.ivStop.setOnClickListener(null)
         holder.ivAddTime.setOnClickListener(null)

@@ -3,12 +3,11 @@ package com.example.gestion_salle_de_jeux.ui.materiel
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter // Important pour submitList
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.gestion_salle_de_jeux.databinding.ListItemMaterielBinding
 import com.example.gestion_salle_de_jeux.ui.materiel.model.MaterialUiItem
 
-// Le constructeur ne prend maintenant qu'un seul paramètre : le listener
 class MaterielAdapter(
     private val onEditClick: (MaterialUiItem) -> Unit
 ) : ListAdapter<MaterialUiItem, MaterielAdapter.MaterielViewHolder>(MaterielDiffCallback()) {
@@ -31,18 +30,20 @@ class MaterielAdapter(
 
         fun bind(item: MaterialUiItem) {
             binding.tvItemName.text = item.name
-            binding.tvItemCount.text = "Nombre : ${item.count}"
+
+            // Modification de l'affichage comme demandé :
+            // tvItemCount affiche le Total
+            binding.tvItemCount.text = "Total : ${item.count}"
+
+            // tvStockStatus affiche le calcul fait dans le ViewModel (Utilisé | Dispo)
             binding.tvStockStatus.text = item.stockStatus
 
-            // Assurez-vous d'avoir les icônes ou utilisez une par défaut
             try {
                 binding.ivItemIcon.setImageResource(item.iconResId)
             } catch (e: Exception) {
-                // Fallback si l'image plante
                 binding.ivItemIcon.setImageResource(android.R.drawable.ic_menu_help)
             }
 
-            // Clic sur le bouton modifier (l'icône crayon)
             binding.ivEditAction.setOnClickListener {
                 onEditClick(item)
             }

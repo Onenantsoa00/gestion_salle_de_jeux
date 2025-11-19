@@ -17,9 +17,10 @@ import com.example.gestion_salle_de_jeux.data.entity.Playeur
 import com.example.gestion_salle_de_jeux.data.entity.Reserve
 import com.example.gestion_salle_de_jeux.data.entity.Tournoi
 
+// Passage à la version 3
 @Database(
     entities = [Finance::class, Jeux::class, Materiel::class, Playeur::class, Reserve::class, Tournoi::class],
-    version = 1,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(DateConverter::class)
@@ -39,7 +40,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "gestion_salle_jeux_db"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration() // Permet de recréer la table avec la nouvelle colonne
+                    .build()
                 INSTANCE = instance
                 instance
             }
