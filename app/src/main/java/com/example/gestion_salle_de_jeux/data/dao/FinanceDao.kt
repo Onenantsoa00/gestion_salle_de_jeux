@@ -1,46 +1,39 @@
 package com.example.gestion_salle_de_jeux.data.dao
 
-import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
-import androidx.room.Update
+import androidx.room.*
 import com.example.gestion_salle_de_jeux.data.entity.Finance
-import com.example.gestion_salle_de_jeux.data.entity.FinanceAvecJeux
 import kotlinx.coroutines.flow.Flow
+import java.util.Date
 
 @Dao
 interface FinanceDao {
-    //insert
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertFinance(finance: Finance)
+    @Insert
+    suspend fun insert(finance: Finance)
 
-    //read all
-    @Query("SELECT * FROM Finance")
+    @Update
+    suspend fun update(finance: Finance)
+
+    @Delete
+    suspend fun delete(finance: Finance)
+
+    @Query("SELECT * FROM finance ORDER BY date_heure DESC")
     fun getAllFinance(): Flow<List<Finance>>
 
-    //read by id
-    @Query("SELECT * FROM Finance WHERE id = :id")
-    suspend fun getFinanceById(id: Int): Finance?
+    // --- ANALYTICS DASHBOARD ---
 
-    //update
-    @Update
-    suspend fun updateFinance(finance: Finance):Int
+    @Query("SELECT * FROM finance WHERE date_heure BETWEEN :startDate AND :endDate ORDER BY date_heure DESC")
+    fun getTransactionsByDateRange(startDate: Date, endDate: Date): Flow<List<Finance>>
 
-    //update by id
-    @Query("UPDATE Finance SET montant_entrant = :montant WHERE id = :id")
-    suspend fun updateFinanceById(id: Int, montant: Double): Int
+    @Query("SELECT COALESCE(SUM(montant_entrant), 0) FROM finance WHERE date_heure BETWEEN :startDate AND :endDate")
+    fun getTotalEntrantByRange(startDate: Date, endDate: Date): Flow<Double>
 
-    //delete
-    @Delete
-    suspend fun deleteFinance(finance: Finance): Int
+    @Query("SELECT COALESCE(SUM(montant_sortant), 0) FROM finance WHERE source = :source AND date_heure BETWEEN :startDate AND :endDate")
+    fun getTotalSortantBySourceAndRange(source: String, startDate: Date, endDate: Date): Flow<Double>
 
-    //delete by id
-    @Query("DELETE FROM Finance WHERE id = :id")
-    suspend fun deleteFinanceById(id: Int): Int
+    // --- NOUVEAU : REQUÊTES POUR LE GRAPHIQUE ---
 
-    //read console + jeux
-    @Query("Select * FROM Finance")
-    suspend fun getFinanceAvecJeux(): List<FinanceAvecJeux>
+    // Récupère toutes les entrées brutes pour une période, on fera le groupement en Kotlin pour plus de flexibilité avec les dates
+    // (C'est plus simple que de faire des manipulations de dates complexes en SQL pur sur Android)
+    @Query("SELECT * FROM finance WHERE montant_entrant > 0 AND date_heure BETWEEN :startDate AND :endDate ORDER BY date_heure ASC")
+    fun getIncomesByRange(startDate: Date, endDate: Date): Flow<List<Finance>>
 }

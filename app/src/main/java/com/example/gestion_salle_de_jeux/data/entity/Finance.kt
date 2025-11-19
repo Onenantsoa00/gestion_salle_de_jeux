@@ -14,5 +14,8 @@ data class Finance(
     @ColumnInfo(name = "date_heure") val date_heure: Date,
     @ColumnInfo(name = "montant_entrant") val montant_entrant: Double,
     @ColumnInfo(name = "montant_sortant") val montant_sortant: Double,
-    @ColumnInfo(name = "description") val description: String
+    @ColumnInfo(name = "description") val description: String,
+
+    // C'EST CE CHAMP QUI MANQUAIT ET CAUSAIT L'ERREUR
+    @ColumnInfo(name = "source") val source: String // Ex: "BOSS", "MATERIEL", "JETON", "RECETTE"
 )

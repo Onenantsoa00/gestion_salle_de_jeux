@@ -8,6 +8,8 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.gestion_salle_de_jeux.R
 import com.example.gestion_salle_de_jeux.data.entity.Finance
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -32,21 +34,45 @@ class FinanceAdapter(private var finances: List<Finance>) :
         val finance = finances[position]
         val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
 
-        // Formatage des données
+        // Helper de formatage local
+        fun formatMoney(amount: Double): String {
+            val symbols = DecimalFormatSymbols(Locale.getDefault()).apply {
+                groupingSeparator = ' '
+            }
+            val formatter = DecimalFormat("#,##0", symbols)
+            return "${formatter.format(amount)} Ar"
+        }
+
         holder.tvDateHeure.text = dateFormat.format(finance.date_heure)
-        holder.tvMontantEntrant.text = String.format(Locale.getDefault(), "%.2f Ariary", finance.montant_entrant)
-        holder.tvMontantSortant.text = String.format(Locale.getDefault(), "%.2f Ariary", finance.montant_sortant)
-        holder.tvDescription.text = finance.description
 
-        // Calcul et affichage du solde
-        val solde = finance.montant_entrant - finance.montant_sortant
-        holder.tvSolde.text = String.format(Locale.getDefault(), "%.2f Ariary", solde)
-
-        // Couleur selon le solde
-        val color = if (solde >= 0) {
-            ContextCompat.getColor(holder.itemView.context, R.color.green)
+        // Affichage Entrant
+        if (finance.montant_entrant > 0) {
+            holder.tvMontantEntrant.text = "+ ${formatMoney(finance.montant_entrant)}"
+            holder.tvMontantEntrant.visibility = View.VISIBLE
+            holder.tvMontantEntrant.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.dashboard_green))
         } else {
-            ContextCompat.getColor(holder.itemView.context, R.color.red)
+            holder.tvMontantEntrant.visibility = View.GONE
+        }
+
+        // Affichage Sortant
+        if (finance.montant_sortant > 0) {
+            holder.tvMontantSortant.text = "- ${formatMoney(finance.montant_sortant)}"
+            holder.tvMontantSortant.visibility = View.VISIBLE
+            holder.tvMontantSortant.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.dashboard_red))
+        } else {
+            holder.tvMontantSortant.visibility = View.GONE
+        }
+
+        holder.tvDescription.text = "${finance.description} (${finance.source})"
+
+        // Solde
+        val solde = finance.montant_entrant - finance.montant_sortant
+        holder.tvSolde.text = formatMoney(solde)
+
+        val color = if (solde >= 0) {
+            ContextCompat.getColor(holder.itemView.context, R.color.dashboard_green)
+        } else {
+            ContextCompat.getColor(holder.itemView.context, R.color.dashboard_red)
         }
         holder.tvSolde.setTextColor(color)
     }
