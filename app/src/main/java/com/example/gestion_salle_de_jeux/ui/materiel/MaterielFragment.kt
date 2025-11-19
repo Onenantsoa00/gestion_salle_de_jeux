@@ -1,8 +1,10 @@
 package com.example.gestion_salle_de_jeux.ui.materiel
 
 import android.app.AlertDialog
-import android.content.Context
+import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.LayerDrawable
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -18,6 +20,8 @@ import com.example.gestion_salle_de_jeux.data.AppDatabase
 import com.example.gestion_salle_de_jeux.data.entity.JeuLibrary
 import com.example.gestion_salle_de_jeux.databinding.FragmentMaterielBinding
 import com.example.gestion_salle_de_jeux.ui.materiel.model.MaterialUiItem
+import com.example.gestion_salle_de_jeux.ui.utils.WaterBorderDrawable
+import com.google.android.material.button.MaterialButton
 
 class MaterielFragment : Fragment() {
 
@@ -26,6 +30,9 @@ class MaterielFragment : Fragment() {
 
     private lateinit var viewModel: MaterielViewModel
     private lateinit var adapter: MaterielAdapter
+
+    // Variable pour gérer l'animation active
+    private var activeWaterEffect: WaterBorderDrawable? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentMaterielBinding.inflate(inflater, container, false)
@@ -42,6 +49,9 @@ class MaterielFragment : Fragment() {
         setupRecyclerView()
         setupClickListeners()
         observeViewModel()
+
+        // Initialisation : On sélectionne "Matériel" par défaut
+        selectMaterielTab()
     }
 
     private fun setupRecyclerView() {
@@ -56,26 +66,42 @@ class MaterielFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
-        binding.toggleCategory.addOnButtonCheckedListener { _, checkedId, isChecked ->
-            if (isChecked) {
-                when (checkedId) {
-                    binding.btnTabMateriel.id -> {
-                        adapter.setGameMode(false)
-                        viewModel.setTabMode(false)
-                        binding.fabAddMateriel.show()
-                    }
-                    binding.btnTabJeux.id -> {
-                        adapter.setGameMode(true)
-                        viewModel.setTabMode(true)
-                        binding.fabAddMateriel.hide()
-                    }
-                }
-            }
+        // CORRECTION : Gestion manuelle des clics (plus de ToggleGroup)
+
+        binding.btnTabMateriel.setOnClickListener {
+            selectMaterielTab()
+        }
+
+        binding.btnTabJeux.setOnClickListener {
+            selectJeuxTab()
         }
 
         binding.fabAddMateriel.setOnClickListener {
             showAddEditMaterielDialog(null)
         }
+    }
+
+    // Fonctions pour changer d'onglet proprement
+    private fun selectMaterielTab() {
+        // Logique Métier
+        adapter.setGameMode(false)
+        viewModel.setTabMode(false)
+        binding.fabAddMateriel.show()
+
+        // Logique Visuelle (Effet Eau)
+        applyWaterEffect(binding.btnTabMateriel)
+        clearWaterEffect(binding.btnTabJeux)
+    }
+
+    private fun selectJeuxTab() {
+        // Logique Métier
+        adapter.setGameMode(true)
+        viewModel.setTabMode(true)
+        binding.fabAddMateriel.hide()
+
+        // Logique Visuelle (Effet Eau)
+        applyWaterEffect(binding.btnTabJeux)
+        clearWaterEffect(binding.btnTabMateriel)
     }
 
     private fun observeViewModel() {
@@ -86,18 +112,50 @@ class MaterielFragment : Fragment() {
     }
 
     // ================================================================================
+    // EFFET VISUEL EAU (Water Flow)
+    // ================================================================================
+
+    private fun applyWaterEffect(button: MaterialButton) {
+        // 1. Créer l'effet d'eau
+        val waterDrawable = WaterBorderDrawable(
+            strokeWidth = 8f,
+            cornerRadius = button.cornerRadius.toFloat()
+        )
+
+        // 2. Créer le fond normal du bouton
+        // Note : on utilise la couleur de fond du dashboard pour que l'intérieur soit opaque
+        val backgroundDrawable = ColorDrawable(ContextCompat.getColor(requireContext(), R.color.dashboard_background))
+
+        // 3. Combiner (Fond + Bordure Eau par dessus)
+        val layers = arrayOf(backgroundDrawable, waterDrawable)
+        val layerDrawable = LayerDrawable(layers)
+
+        // 4. Appliquer au bouton
+        button.backgroundTintList = null // Important : désactiver le tint par défaut
+        button.background = layerDrawable
+        button.setTextColor(Color.WHITE) // Texte brillant pour l'actif
+    }
+
+    private fun clearWaterEffect(button: MaterialButton) {
+        // On remet le bouton à son état "inactif"
+        button.background = null
+        // On réapplique le tint pour avoir la couleur de fond simple
+        button.backgroundTintList = ContextCompat.getColorStateList(requireContext(), R.color.dashboard_background)
+        button.strokeWidth = 0
+        button.setTextColor(Color.GRAY) // Texte grisé pour l'inactif
+    }
+
+    // ================================================================================
     // GESTION AVANCÉE DES JEUX (Modifier / Supprimer)
     // ================================================================================
     private fun showGamesManagementDialog(consoleItem: MaterialUiItem) {
         val context = requireContext()
 
-        // Layout principal de la dialog
         val mainLayout = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(50, 50, 50, 20)
         }
 
-        // Titre
         val title = TextView(context).apply {
             text = "Jeux sur ${consoleItem.name}"
             textSize = 20f
@@ -109,12 +167,11 @@ class MaterielFragment : Fragment() {
         }
         mainLayout.addView(title)
 
-        // Zone de liste déroulante (ScrollView) pour afficher les jeux
         val scrollContainer = ScrollView(context).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                0 // Hauteur dynamique
-            ).apply { weight = 1f } // Prend tout l'espace disponible
+                0
+            ).apply { weight = 1f }
         }
 
         val listLayout = LinearLayout(context).apply {
@@ -123,7 +180,6 @@ class MaterielFragment : Fragment() {
         scrollContainer.addView(listLayout)
         mainLayout.addView(scrollContainer)
 
-        // Zone d'ajout (en bas)
         val addLayout = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(
@@ -137,7 +193,6 @@ class MaterielFragment : Fragment() {
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply { weight = 1f }
         }
 
-        // Utilisation d'un bouton textuel simple ou d'une icone standard
         val btnAdd = Button(context).apply {
             text = "Ajouter"
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
@@ -147,13 +202,11 @@ class MaterielFragment : Fragment() {
         addLayout.addView(btnAdd)
         mainLayout.addView(addLayout)
 
-        // Création de la dialog
         val dialog = AlertDialog.Builder(context)
             .setView(mainLayout)
             .setNegativeButton("Fermer", null)
             .create()
 
-        // LOGIQUE D'AJOUT
         btnAdd.setOnClickListener {
             val gameName = inputGame.text.toString().trim()
             if (gameName.isNotEmpty()) {
@@ -162,9 +215,8 @@ class MaterielFragment : Fragment() {
             }
         }
 
-        // OBSERVATION DES JEUX (Affichage dynamique des lignes)
         viewModel.getGamesForConsole(consoleItem.id).observe(viewLifecycleOwner) { games ->
-            listLayout.removeAllViews() // On nettoie la liste avant de la reconstruire
+            listLayout.removeAllViews()
 
             if (games.isEmpty()) {
                 val emptyView = TextView(context).apply {
@@ -174,45 +226,36 @@ class MaterielFragment : Fragment() {
                 listLayout.addView(emptyView)
             } else {
                 games.forEach { jeu ->
-                    // Chaque ligne est un LinearLayout horizontal
                     val row = LinearLayout(context).apply {
                         orientation = LinearLayout.HORIZONTAL
                         gravity = Gravity.CENTER_VERTICAL
                         setPadding(0, 15, 0, 15)
                     }
 
-                    // Nom du jeu
                     val tvName = TextView(context).apply {
                         text = "• ${jeu.nom_jeu}"
                         textSize = 16f
                         layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply { weight = 1f }
                     }
 
-                    // Bouton Edit (Crayon)
                     val btnEdit = ImageView(context).apply {
-                        setImageResource(android.R.drawable.ic_menu_edit) // Icone système standard
+                        setImageResource(android.R.drawable.ic_menu_edit)
                         setColorFilter(ContextCompat.getColor(context, R.color.dashboard_blue))
                         setPadding(15, 10, 15, 10)
-                        setOnClickListener {
-                            showEditGameDialog(jeu) // Sous-dialogue modification
-                        }
+                        setOnClickListener { showEditGameDialog(jeu) }
                     }
 
-                    // Bouton Delete (Corbeille)
                     val btnDelete = ImageView(context).apply {
-                        setImageResource(android.R.drawable.ic_menu_delete) // Icone système standard
+                        setImageResource(android.R.drawable.ic_menu_delete)
                         setColorFilter(ContextCompat.getColor(context, android.R.color.holo_red_dark))
                         setPadding(15, 10, 15, 10)
-                        setOnClickListener {
-                            showDeleteConfirmDialog(jeu) // Sous-dialogue suppression
-                        }
+                        setOnClickListener { showDeleteConfirmDialog(jeu) }
                     }
 
                     row.addView(tvName)
                     row.addView(btnEdit)
                     row.addView(btnDelete)
 
-                    // Ligne de séparation fine
                     val divider = View(context).apply {
                         layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1)
                         setBackgroundColor(ContextCompat.getColor(context, android.R.color.darker_gray))
@@ -224,15 +267,13 @@ class MaterielFragment : Fragment() {
                 }
             }
         }
-
         dialog.show()
     }
 
-    // Sous-dialogue pour MODIFIER un jeu
     private fun showEditGameDialog(jeu: JeuLibrary) {
         val input = EditText(requireContext())
         input.setText(jeu.nom_jeu)
-        input.setSelection(input.text.length) // Curseur à la fin
+        input.setSelection(input.text.length)
 
         AlertDialog.Builder(requireContext())
             .setTitle("Modifier le jeu")
@@ -248,7 +289,6 @@ class MaterielFragment : Fragment() {
             .show()
     }
 
-    // Sous-dialogue pour SUPPRIMER un jeu
     private fun showDeleteConfirmDialog(jeu: JeuLibrary) {
         AlertDialog.Builder(requireContext())
             .setTitle("Supprimer ce jeu ?")
@@ -262,7 +302,7 @@ class MaterielFragment : Fragment() {
     }
 
     // ================================================================================
-    // GESTION MATÉRIEL (Code existant conservé)
+    // GESTION MATÉRIEL
     // ================================================================================
     private fun showAddEditMaterielDialog(itemToEdit: MaterialUiItem?) {
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_materiel, null)
@@ -311,6 +351,7 @@ class MaterielFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        activeWaterEffect?.stop()
         _binding = null
     }
 }

@@ -21,39 +21,43 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <com.google.android.material.button.MaterialButtonToggleGroup
-        android:id="@+id/toggle_category"
+    <LinearLayout
+        android:id="@+id/container_buttons"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
-        app:checkedButton="@id/btn_tab_materiel"
-        app:layout_constraintTop_toBottomOf="@id/tv_header_title"
-        app:selectionRequired="true"
-        app:singleSelection="true">
+        android:orientation="horizontal"
+        app:layout_constraintTop_toBottomOf="@id/tv_header_title">
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_tab_materiel"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:layout_marginEnd="8dp"
             android:text="Matériel"
             android:textAllCaps="false"
             android:textColor="@color/white"
-            app:strokeColor="@color/white" />
+            app:cornerRadius="12dp"
+            app:strokeWidth="0dp"
+            app:backgroundTint="@color/dashboard_background" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_tab_jeux"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:layout_marginStart="8dp"
             android:text="Jeux"
             android:textAllCaps="false"
             android:textColor="@color/white"
-            app:strokeColor="@color/dashboard_text_secondary" />
+            app:cornerRadius="12dp"
+            app:strokeWidth="0dp"
+            app:backgroundTint="@color/dashboard_background" />
 
-    </com.google.android.material.button.MaterialButtonToggleGroup>
+    </LinearLayout>
 
     <ImageView
         android:id="@+id/iv_logo_background"
@@ -76,7 +80,7 @@
         android:paddingBottom="80dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/toggle_category"
+        app:layout_constraintTop_toBottomOf="@id/container_buttons"
         tools:listitem="@layout/list_item_materiel" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
