@@ -57,7 +57,10 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
         // Initialisation du ViewModel pour le Matériel
         val database = AppDatabase.getDatabase(requireContext())
         val materielDao = database.materielDao()
-        val viewModelFactory = MaterielViewModel.MaterielViewModelFactory(materielDao)
+        val jeuLibraryDao = database.jeuLibraryDao() // 1. On récupère le nouveau DAO
+
+        // 2. On passe les deux DAO à la Factory (Correction de l'erreur)
+        val viewModelFactory = MaterielViewModel.MaterielViewModelFactory(materielDao, jeuLibraryDao)
         materielViewModel = ViewModelProvider(this, viewModelFactory)[MaterielViewModel::class.java]
 
         setupRecyclerView()
@@ -93,18 +96,20 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
 
     private fun showAvailableConsolesDialog() {
         lifecycleScope.launch {
-            // Correction 1 : Ceci fonctionne maintenant car on a mis à jour MaterielViewModel
+            // On récupère tout le matériel
             val allMateriel = materielViewModel.allMateriel.first()
 
-            // Correction 2 : id_reserve a été remis dans l'Entity Materiel
-            val availableMateriel = allMateriel.filter { it.id_reserve == 0 }
+            // On filtre pour n'avoir que ce qui est libre (id_reserve == 0)
+            // ET ce qui est de type CONSOLE (car on ne lance pas une session sur un câble HDMI)
+            val availableMateriel = allMateriel.filter {
+                it.id_reserve == 0 && it.type == "CONSOLE"
+            }
 
             if (availableMateriel.isEmpty()) {
-                Toast.makeText(requireContext(), "Aucun poste libre ou Matériel vide", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Aucune console libre", Toast.LENGTH_SHORT).show()
                 return@launch
             }
 
-            // Correction 3 : Remplacement de 'it.console' par 'it.nom'
             val consoleNames = availableMateriel.map { "Poste ${it.id} - ${it.nom}" }.toTypedArray()
 
             AlertDialog.Builder(requireContext())
@@ -185,7 +190,7 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
 
     private fun setupGameAutoComplete(autoComplete: AutoCompleteTextView, gameTypeField: com.google.android.material.textfield.TextInputEditText) {
         if (jeuxList.isEmpty()) {
-            autoComplete.isEnabled = false // Optionnel : laisser activé pour permettre la saisie libre
+            autoComplete.isEnabled = false
             autoComplete.hint = "Saisir un jeu"
             return
         }
@@ -262,11 +267,9 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
                 val selectedGameTitle = dialogBinding.actvGameSelection.text.toString().trim()
                 val playerName = dialogBinding.etPlayerName.text.toString().trim()
 
-                // Récupération du jeu ou création d'un objet temporaire si pas dans la liste
                 val selectedGame = jeuxList.find { it.titre == selectedGameTitle }
                     ?: Jeux(titre = selectedGameTitle, type = "Autre", id_playeur = 0, id_materiel = 0, id_finance = 0)
 
-                // Création du joueur
                 val newPlayer = Playeur(
                     nom = playerName,
                     prenom = "",
@@ -274,7 +277,6 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
                 )
                 val playerId = database.playeurDao().insertPlayeur(newPlayer).toInt()
 
-                // Création de la session de jeu
                 val gameSession = Jeux(
                     titre = selectedGame.titre,
                     type = selectedGame.type,
@@ -286,8 +288,8 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
                 database.jeuxDao().insertJeux(gameSession)
 
                 // Mise à jour du statut du matériel (Occupé)
-                // Note : Assurez-vous que id_reserve est bien géré dans votre DAO update
-                val updatedMateriel = materiel.copy(id_reserve = 1) // 1 = Occupé (simplification)
+                // On utilise l'ID de la session ou juste 1 pour dire "occupé"
+                val updatedMateriel = materiel.copy(id_reserve = 1, quantite_utilise = 1)
                 database.materielDao().update(updatedMateriel)
 
                 Toast.makeText(requireContext(), "Session démarrée !", Toast.LENGTH_SHORT).show()

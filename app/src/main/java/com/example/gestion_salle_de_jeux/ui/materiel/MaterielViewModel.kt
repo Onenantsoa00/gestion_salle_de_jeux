@@ -2,47 +2,82 @@ package com.example.gestion_salle_de_jeux.ui.materiel
 
 import androidx.lifecycle.*
 import com.example.gestion_salle_de_jeux.R
+import com.example.gestion_salle_de_jeux.data.dao.JeuLibraryDao
 import com.example.gestion_salle_de_jeux.data.dao.MaterielDao
+import com.example.gestion_salle_de_jeux.data.entity.JeuLibrary
 import com.example.gestion_salle_de_jeux.data.entity.Materiel
 import com.example.gestion_salle_de_jeux.ui.materiel.model.MaterialUiItem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
-class MaterielViewModel(private val materielDao: MaterielDao) : ViewModel() {
+class MaterielViewModel(
+    private val materielDao: MaterielDao,
+    private val jeuLibraryDao: JeuLibraryDao
+) : ViewModel() {
 
-    val materialList: LiveData<List<MaterialUiItem>> = materielDao.getAllMateriel().asLiveData().map { listEntities ->
-        listEntities.map { entity ->
-            mapEntityToUiModel(entity)
-        }
+    private val _allUiItems = materielDao.getAllMateriel().asLiveData().map { list ->
+        list.map { mapEntityToUiModel(it) }
     }
 
     val allMateriel: Flow<List<Materiel>> = materielDao.getAllMateriel()
 
-    // Mise à jour pour inclure quantite_utilise
-    fun addMateriel(nom: String, quantiteTotal: Int, quantiteUtilise: Int, type: String) {
-        viewModelScope.launch {
-            val newItem = Materiel(
-                nom = nom,
-                quantite = quantiteTotal,
-                quantite_utilise = quantiteUtilise,
-                type = type
-            )
-            materielDao.insert(newItem)
+    private val _filterMode = MutableLiveData("ALL")
+
+    val displayList: LiveData<List<MaterialUiItem>> = MediatorLiveData<List<MaterialUiItem>>().apply {
+        addSource(_allUiItems) { items -> value = filterItems(items, _filterMode.value) }
+        addSource(_filterMode) { mode -> value = filterItems(_allUiItems.value, mode) }
+    }
+
+    private fun filterItems(items: List<MaterialUiItem>?, mode: String?): List<MaterialUiItem> {
+        if (items == null) return emptyList()
+        return if (mode == "CONSOLES") {
+            items.filter { it.iconResId == R.drawable.ic_console }
+        } else {
+            items
         }
     }
 
+    fun setTabMode(isGamesTab: Boolean) {
+        _filterMode.value = if (isGamesTab) "CONSOLES" else "ALL"
+    }
+
+    // --- Gestion Matériel ---
+    fun addMateriel(nom: String, quantiteTotal: Int, quantiteUtilise: Int, type: String) {
+        viewModelScope.launch {
+            materielDao.insert(Materiel(nom = nom, quantite = quantiteTotal, quantite_utilise = quantiteUtilise, type = type))
+        }
+    }
     fun updateMateriel(id: Int, nom: String, quantiteTotal: Int, quantiteUtilise: Int, type: String) {
         viewModelScope.launch {
-            val updatedItem = Materiel(
-                id = id,
-                nom = nom,
-                quantite = quantiteTotal,
-                quantite_utilise = quantiteUtilise,
-                type = type
-            )
-            materielDao.update(updatedItem)
+            materielDao.update(Materiel(id = id, nom = nom, quantite = quantiteTotal, quantite_utilise = quantiteUtilise, type = type))
         }
+    }
+
+    // --- Gestion Jeux (CORRIGÉ) ---
+    fun addGameToConsole(consoleId: Int, gameName: String) {
+        viewModelScope.launch {
+            jeuLibraryDao.insert(JeuLibrary(id_materiel = consoleId, nom_jeu = gameName))
+        }
+    }
+
+    // NOUVEAU : Modifier un jeu
+    fun updateGame(jeu: JeuLibrary, newName: String) {
+        viewModelScope.launch {
+            val updatedJeu = jeu.copy(nom_jeu = newName)
+            jeuLibraryDao.update(updatedJeu)
+        }
+    }
+
+    // NOUVEAU : Supprimer un jeu
+    fun deleteGame(jeu: JeuLibrary) {
+        viewModelScope.launch {
+            jeuLibraryDao.delete(jeu)
+        }
+    }
+
+    fun getGamesForConsole(consoleId: Int): LiveData<List<JeuLibrary>> {
+        return jeuLibraryDao.getJeuxForConsole(consoleId).asLiveData()
     }
 
     private fun mapEntityToUiModel(entity: Materiel): MaterialUiItem {
@@ -51,32 +86,24 @@ class MaterielViewModel(private val materielDao: MaterielDao) : ViewModel() {
             "ECRAN", "TV" -> R.drawable.ic_tv
             else -> R.drawable.ic_gamepad
         }
-
-        // CALCUL LOGIQUE ICI
         val enStock = entity.quantite - entity.quantite_utilise
-
-        // On formate le texte pour l'affichage "En Stock"
-        val statusText = if (enStock > 0) "$enStock En Stock" else "Rupture"
-
-        // On passe le "Total" dans count, mais on utilisera le statusText pour afficher le reste
-        // Note : J'utilise une astuce ici. Je passe le nombre "Utilisé" dans le nom de l'item pour l'adapter ?
-        // Non, on va gérer ça proprement dans l'adapter.
-        // MaterialUiItem(id, name, count(Total), stockStatus(String), icon)
-
         return MaterialUiItem(
             id = entity.id,
             name = entity.nom,
-            count = entity.quantite, // Ici on met le TOTAL
-            stockStatus = "Utilisé: ${entity.quantite_utilise} | Dispo: $enStock", // On combine l'affichage ici
+            count = entity.quantite,
+            stockStatus = "Utilisé: ${entity.quantite_utilise} | Dispo: $enStock",
             iconResId = iconRes
         )
     }
 
-    class MaterielViewModelFactory(private val materielDao: MaterielDao) : ViewModelProvider.Factory {
+    class MaterielViewModelFactory(
+        private val materielDao: MaterielDao,
+        private val jeuLibraryDao: JeuLibraryDao
+    ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(MaterielViewModel::class.java)) {
                 @Suppress("UNCHECKED_CAST")
-                return MaterielViewModel(materielDao) as T
+                return MaterielViewModel(materielDao, jeuLibraryDao) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }
