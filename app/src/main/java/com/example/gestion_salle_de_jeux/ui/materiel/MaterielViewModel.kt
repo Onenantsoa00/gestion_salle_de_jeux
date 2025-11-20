@@ -94,13 +94,15 @@ class MaterielViewModel(
             "ECRAN", "TV" -> R.drawable.ic_tv
             else -> R.drawable.ic_gamepad
         }
+
+        // Calcul du stock
         val enStock = entity.quantite - entity.quantite_utilise
 
-        // CORRECTION ICI : Format "Utilisé : Y | Stock : Z"
+        // CORRECTION : Affichage standardisé "Utilisé : X | Stock : Y"
         return MaterialUiItem(
             id = entity.id,
             name = entity.nom,
-            count = entity.quantite, // Sera affiché comme "Total : X" par l'adapter
+            count = entity.quantite, // L'adapter affichera "Total : count"
             stockStatus = "Utilisé : ${entity.quantite_utilise} | Stock : $enStock",
             iconResId = iconRes
         )

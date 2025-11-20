@@ -53,13 +53,15 @@ class GameRoomViewModel(
         val materiel = materielDao.getMaterielById(jeu.id_materiel)
         val playeur = playeurDao.getPlayeurById(jeu.id_playeur)
 
+        // Affichage dynamique du poste (si on a plusieurs PS4, on ne sait pas laquelle c'est exactement
+        // sans une table physique distincte, mais on affiche le nom générique)
         return GameSession(
             id = jeu.id.toString(),
-            postName = "Poste ${materiel?.id}",
+            postName = "Poste", // Ou materiel?.id pour l'ID unique de la session
             consoleName = materiel?.nom ?: "Inconnu",
             gameName = jeu.titre,
             players = playeur?.nom ?: "Inconnu",
-            matchDetails = "${jeu.nombre_tranches} match(s) • Total: ${jeu.montant_total.toInt()} Ar",
+            matchDetails = "${jeu.nombre_tranches} tranches • ${jeu.montant_total.toInt()} Ar",
             timeRemaining = "",
             paymentStatus = if (jeu.est_paye) PaymentStatus.PAID else PaymentStatus.UNPAID,
             sessionStatus = SessionStatus.ONLINE,
@@ -92,19 +94,25 @@ class GameRoomViewModel(
         return session.copy(timeRemaining = timeText, sessionStatus = status)
     }
 
-    // --- MÉTHODES PUBLIQUES APPELÉES PAR LE FRAGMENT (Correctifs) ---
+    // --- ACTIONS UTILISATEUR ---
 
     fun onStopClicked(session: GameSession) {
         viewModelScope.launch {
             val jeu = jeuxDao.getJeuxById(session.id.toInt())
             if (jeu != null) {
-                // Marquer comme terminé
+                // 1. Terminer la session
                 jeuxDao.updateJeux(jeu.copy(est_termine = true))
 
-                // Libérer le matériel
+                // 2. Libérer UNE unité de matériel (Décrémenter)
                 val materiel = materielDao.getMaterielById(jeu.id_materiel)
                 if (materiel != null) {
-                    materielDao.update(materiel.copy(id_reserve = 0, quantite_utilise = 0))
+                    // On s'assure de ne pas descendre en dessous de 0
+                    val nouvelUsage = if (materiel.quantite_utilise > 0) materiel.quantite_utilise - 1 else 0
+
+                    // Remettre id_reserve à 0 n'est plus pertinent ici si on gère par quantité,
+                    // mais on peut le laisser à 0 pour dire "pas totalement plein" si on veut.
+                    // Le plus important est quantite_utilise.
+                    materielDao.update(materiel.copy(quantite_utilise = nouvelUsage))
                 }
             }
         }
@@ -114,10 +122,8 @@ class GameRoomViewModel(
         viewModelScope.launch {
             val jeu = jeuxDao.getJeuxById(session.id.toInt())
             if (jeu != null) {
-                // Inverser le statut payé/non payé ou juste mettre à payé
                 val newStatus = !jeu.est_paye
                 jeuxDao.updateJeux(jeu.copy(est_paye = newStatus))
-                // TODO: Ajouter une ligne dans Finance ici si newStatus est true
             }
         }
     }
@@ -127,17 +133,13 @@ class GameRoomViewModel(
             val jeu = jeuxDao.getJeuxById(session.id.toInt())
             if (jeu != null) {
                 val newPauseState = !jeu.est_en_pause
-                // Logique simplifiée : on met juste en pause le flag.
-                // Pour un timer précis, il faudrait ajuster le timestamp_debut lors de la reprise
-                // Mais pour l'instant, on gère juste l'état visuel.
                 jeuxDao.updateJeux(jeu.copy(est_en_pause = newPauseState))
             }
         }
     }
 
     fun onAddTimeClicked(session: GameSession) {
-        // Logique future pour ajouter du temps
-        // Pour l'instant, on ne fait rien ou on affiche un Toast dans le fragment
+        // À implémenter plus tard
     }
 
     class Factory(private val jeuxDao: JeuxDao, private val materielDao: MaterielDao, private val playeurDao: PlayeurDao) : ViewModelProvider.Factory {

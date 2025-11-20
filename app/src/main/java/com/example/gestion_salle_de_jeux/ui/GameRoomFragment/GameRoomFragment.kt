@@ -75,19 +75,32 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
 
     private fun setupClickListeners() {
         binding.fabAddSession.setOnClickListener { showAvailableConsolesDialog() }
+
+        binding.switchPowerCut.setOnCheckedChangeListener { _, isChecked ->
+            Toast.makeText(requireContext(), "État électricité changé", Toast.LENGTH_SHORT).show()
+        }
     }
 
+    // CORRECTION ICI : Affichage des détails de stock formaté
     private fun showAvailableConsolesDialog() {
         lifecycleScope.launch {
             val allMateriel = materielViewModel.allMateriel.first()
-            val available = allMateriel.filter { it.id_reserve == 0 && it.type == "CONSOLE" }
+
+            // On filtre : Il faut que le stock (Total - Utilisé) soit > 0
+            val available = allMateriel.filter {
+                it.type == "CONSOLE" && it.quantite > it.quantite_utilise
+            }
 
             if (available.isEmpty()) {
-                Toast.makeText(requireContext(), "Aucun poste libre", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Aucun poste libre (Stock épuisé)", Toast.LENGTH_SHORT).show()
                 return@launch
             }
 
-            val names = available.map { "Poste ${it.id} : ${it.nom}" }.toTypedArray()
+            // CORRECTION : Formatage "Nom (Total : X Utilisé : Y | Stock : Z)"
+            val names = available.map {
+                val stock = it.quantite - it.quantite_utilise
+                "${it.nom} (Total : ${it.quantite} Utilisé : ${it.quantite_utilise} | Stock : $stock)"
+            }.toTypedArray()
 
             AlertDialog.Builder(requireContext())
                 .setTitle("Choisir un poste")
@@ -165,24 +178,18 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
         lifecycleScope.launch {
             val db = AppDatabase.getDatabase(requireContext())
 
-            // 1. Créer Joueur (CORRECTION : id_tournoi est null par défaut dans l'entité maintenant)
-            val player = Playeur(
-                nom = playerName,
-                prenom = "",
-                id_tournoi = null // On passe null explicitement ou on utilise la valeur par défaut
-            )
+            val player = Playeur(nom = playerName, prenom = "", id_tournoi = null)
             val playerId = db.playeurDao().insertPlayeur(player).toInt()
 
             val durationMin = (nbMatchs * gameLib.duree_tranche_min).toLong()
             val totalPrice = nbMatchs * gameLib.tarif_par_tranche
 
-            // 2. Créer Session (CORRECTION : id_finance est null)
             val session = Jeux(
                 titre = gameLib.nom_jeu,
                 type = console.type,
                 id_playeur = playerId,
                 id_materiel = console.id,
-                id_finance = null, // Pas encore payé
+                id_finance = null,
                 timestamp_debut = System.currentTimeMillis(),
                 nombre_tranches = nbMatchs,
                 duree_totale_prevue = durationMin,
@@ -192,10 +199,18 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
             )
             db.jeuxDao().insertJeux(session)
 
-            // 3. Marquer Matériel Occupé
-            db.materielDao().update(console.copy(id_reserve = 1))
+            // Mise à jour du compteur (Incrémentation)
+            val materielAJour = db.materielDao().getMaterielById(console.id)
 
-            Toast.makeText(requireContext(), "Session lancée !", Toast.LENGTH_SHORT).show()
+            if (materielAJour != null && materielAJour.quantite_utilise < materielAJour.quantite) {
+                val nouvelUsage = materielAJour.quantite_utilise + 1
+                db.materielDao().update(materielAJour.copy(quantite_utilise = nouvelUsage))
+
+                val nouveauStock = materielAJour.quantite - nouvelUsage
+                Toast.makeText(requireContext(), "Session lancée ! (Reste : $nouveauStock)", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(requireContext(), "Erreur : Stock théorique dépassé", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
