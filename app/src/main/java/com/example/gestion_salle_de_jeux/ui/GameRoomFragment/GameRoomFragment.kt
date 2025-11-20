@@ -1,6 +1,9 @@
 package com.example.gestion_salle_de_jeux.ui.GameRoomFragment
 
 import android.app.AlertDialog
+import android.media.AudioAttributes
+import android.media.Ringtone
+import android.media.RingtoneManager
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -31,10 +34,15 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
 
     private var _binding: FragmentGameroomBinding? = null
     private val binding get() = _binding!!
+
     private lateinit var gameRoomViewModel: GameRoomViewModel
     private lateinit var sessionAdapter: GameSessionAdapter
     private lateinit var materielViewModel: MaterielViewModel
+
     private var libraryList: List<JeuLibrary> = emptyList()
+
+    // Variable pour gérer la sonnerie
+    private var currentRingtone: Ringtone? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentGameroomBinding.inflate(inflater, container, false)
@@ -43,12 +51,15 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
         val db = AppDatabase.getDatabase(requireContext())
         val financeRepo = FinanceRepository(db.financeDao())
         val vmFactory = GameRoomViewModel.Factory(db.jeuxDao(), db.materielDao(), db.playeurDao(), financeRepo)
         gameRoomViewModel = ViewModelProvider(this, vmFactory)[GameRoomViewModel::class.java]
+
         val matFactory = MaterielViewModel.MaterielViewModelFactory(db.materielDao(), db.jeuLibraryDao())
         materielViewModel = ViewModelProvider(this, matFactory)[MaterielViewModel::class.java]
+
         setupRecyclerView()
         setupClickListeners()
         observeViewModel()
@@ -59,6 +70,7 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
         binding.rvGameSessions.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = sessionAdapter
+            itemAnimator = null
         }
     }
 
@@ -66,11 +78,75 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
         gameRoomViewModel.gameSessions.observe(viewLifecycleOwner) { sessions ->
             sessionAdapter.submitList(sessions)
         }
+
+        // CORRECTION ICI : Observation du déclencheur d'alarme
+        gameRoomViewModel.alarmTrigger.observe(viewLifecycleOwner) { postName ->
+            // Affiche un message
+            Toast.makeText(requireContext(), "TEMPS ÉCOULÉ : $postName", Toast.LENGTH_LONG).show()
+            // Joue le son
+            playAlarmSound()
+            // Affiche une dialogue pour arrêter le son
+            showAlarmDialog(postName)
+        }
     }
+
+    // --- GESTION SONORE ---
+    private fun playAlarmSound() {
+        try {
+            // On récupère l'URI de l'alarme par défaut (très fort)
+            var notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+
+            // Si pas d'alarme définie, on prend la sonnerie d'appel
+            if (notification == null) {
+                notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+            }
+
+            val r = RingtoneManager.getRingtone(requireContext(), notification)
+
+            // Configuration pour jouer fort (Stream ALARM)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                r.audioAttributes = AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            }
+
+            r.play()
+            currentRingtone = r
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun stopAlarmSound() {
+        currentRingtone?.stop()
+    }
+
+    private fun showAlarmDialog(postName: String) {
+        // Une petite dialogue pour permettre d'arrêter le son facilement
+        AlertDialog.Builder(requireContext())
+            .setTitle("FIN DE SESSION")
+            .setMessage("Le temps est écoulé pour : $postName")
+            .setPositiveButton("OK, Arrêter le son") { _, _ ->
+                stopAlarmSound()
+            }
+            .setCancelable(false) // Oblige à cliquer pour arrêter
+            .show()
+    }
+
+    // Arrêt du son si on quitte l'écran
+    override fun onDestroyView() {
+        stopAlarmSound()
+        super.onDestroyView()
+        _binding = null
+    }
+
+
+    // --- RESTE DU CODE (Logique UI inchangée) ---
 
     private fun setupClickListeners() {
         binding.fabAddSession.setOnClickListener { showAvailableConsolesDialog() }
-        binding.switchPowerCut.setOnCheckedChangeListener { _, _ -> Toast.makeText(requireContext(), "État électricité changé", Toast.LENGTH_SHORT).show() }
+        binding.switchPowerCut.setOnCheckedChangeListener { _, _ -> }
     }
 
     private fun showAvailableConsolesDialog() {
@@ -110,10 +186,7 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
         var selectedLibGame: JeuLibrary? = null
         dBinding.actvGameSelection.setOnItemClickListener { _, _, position, _ ->
             selectedLibGame = libraryList.find { it.nom_jeu == adapter.getItem(position) }
-            selectedLibGame?.let {
-                dBinding.etGameType.setText("Tarif: ${it.tarif_par_tranche.toInt()} Ar / ${it.duree_tranche_min} min")
-                calculateTotal(dBinding, it)
-            }
+            selectedLibGame?.let { dBinding.etGameType.setText("Tarif: ${it.tarif_par_tranche.toInt()} Ar / ${it.duree_tranche_min} min"); calculateTotal(dBinding, it) }
         }
         dBinding.etAmount.hint = "Nombre de matchs"
         dBinding.etAmount.addTextChangedListener(object : TextWatcher {
@@ -159,15 +232,11 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
                 nombre_tranches = nbMatchs,
                 duree_totale_prevue = durationMin,
                 montant_total = totalPrice,
-
-                // CORRECTION : Initialisation
                 est_paye = false,
-                montant_deja_paye = 0.0, // Rien n'est payé au début
-
-                est_termine = false
+                est_termine = false,
+                montant_deja_paye = 0.0
             )
             db.jeuxDao().insertJeux(session)
-
             val materielAJour = db.materielDao().getMaterielById(console.id)
             if (materielAJour != null && materielAJour.quantite_utilise < materielAJour.quantite) {
                 db.materielDao().update(materielAJour.copy(quantite_utilise = materielAJour.quantite_utilise + 1))
@@ -182,12 +251,12 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
             val jeuEntity = db.jeuxDao().getJeuxById(session.id.toInt())
             if (jeuEntity != null) {
                 libraryList = db.jeuLibraryDao().getJeuxForConsole(jeuEntity.id_materiel).first()
-                showAddTimeDialog(session)
+                showAddTimeDialog(session, jeuEntity)
             }
         }
     }
 
-    private fun showAddTimeDialog(session: GameSession) {
+    private fun showAddTimeDialog(session: GameSession, jeuEntity: Jeux) {
         val dBinding = DialogGameSessionBinding.inflate(layoutInflater)
         val dialog = AlertDialog.Builder(requireContext()).setView(dBinding.root).create()
         dBinding.etPlayerName.setText(session.players)
@@ -225,7 +294,14 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
         dialog.show()
     }
 
+    override fun onStopClicked(session: GameSession) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Terminer la session ?")
+            .setMessage("Voulez-vous vraiment arrêter le jeu sur ${session.postName} et libérer le poste ?")
+            .setPositiveButton("Oui, Arrêter") { _, _ -> gameRoomViewModel.onStopClicked(session); Toast.makeText(requireContext(), "Session terminée", Toast.LENGTH_SHORT).show() }
+            .setNegativeButton("Annuler", null).show()
+    }
+
     override fun onPlayPauseClicked(session: GameSession) { gameRoomViewModel.onPlayPauseClicked(session) }
-    override fun onStopClicked(session: GameSession) { gameRoomViewModel.onStopClicked(session) }
     override fun onPaymentClicked(session: GameSession) { gameRoomViewModel.onPaymentClicked(session) }
 }

@@ -47,8 +47,6 @@ class GameSessionAdapter(
         RecyclerView.ViewHolder(binding.root) {
 
         private val context: Context = binding.root.context
-
-        // Animation pour le sablier (ic_timer)
         private var rotationAnimator: ObjectAnimator? = null
 
         fun bind(session: GameSession) {
@@ -58,7 +56,7 @@ class GameSessionAdapter(
             binding.tvMatchDetails.text = "Détails : ${session.matchDetails}"
             binding.tvTimeRemaining.text = "Temps restant : ${session.timeRemaining}"
 
-            // --- 1. ANIMATION DU SABLIER ---
+            // --- ANIMATION DU SABLIER ---
             val targetView = binding.ivAddTimeLarge
             if (rotationAnimator == null) {
                 rotationAnimator = ObjectAnimator.ofFloat(targetView, "rotation", 0f, 360f).apply {
@@ -68,7 +66,7 @@ class GameSessionAdapter(
                 }
             }
 
-            // Tourne si session active (ONLINE/WARNING) et pas en pause
+            // Animation active si : (Online OU Warning) ET (Pas en pause)
             val isRunning = (session.sessionStatus == SessionStatus.ONLINE || session.sessionStatus == SessionStatus.WARNING)
             val shouldAnimate = isRunning && !session.isPaused
 
@@ -76,47 +74,29 @@ class GameSessionAdapter(
                 if (!rotationAnimator!!.isRunning) rotationAnimator!!.start()
             } else {
                 if (rotationAnimator!!.isRunning) rotationAnimator!!.cancel()
-                targetView.rotation = 0f
+                targetView.rotation = 0f // Remise à zéro de la position
             }
 
-            // --- 2. GESTION DES STATUTS (Pastille vs Icone Warning) ---
-
-            // Si le temps est écoulé (ERROR)
+            // --- COULEURS ET INDICATEURS ---
             if (session.sessionStatus == SessionStatus.ERROR) {
-                // On cache la pastille (dot)
                 binding.viewStatusIndicator.visibility = View.GONE
-                // On affiche l'icône warning
                 binding.ivStatusIcon.visibility = View.VISIBLE
-
-                // On met votre image personnalisée
                 binding.ivStatusIcon.setImageResource(R.drawable.ic_custom_warning)
-                // IMPORTANT : On retire le filtre de couleur pour voir la couleur originale (#afa878)
                 binding.ivStatusIcon.imageTintList = null
-
-                // Texte Timer en rouge
                 binding.tvTimeRemaining.setTextColor(ContextCompat.getColor(context, android.R.color.holo_red_dark))
-
             } else {
-                // Si le jeu est en cours (ONLINE ou WARNING)
                 binding.viewStatusIndicator.visibility = View.VISIBLE
                 binding.ivStatusIcon.visibility = View.GONE
 
-                // COULEUR DE LA PASTILLE : Dépend du paiement
-                val colorRes = if (session.paymentStatus == PaymentStatus.PAID) {
-                    R.color.dashboard_green // Vert si payé
-                } else {
-                    R.color.dashboard_yellow // Jaune si non payé
-                }
-
+                val colorRes = if (session.paymentStatus == PaymentStatus.PAID) R.color.dashboard_green else R.color.dashboard_yellow
                 val color = ContextCompat.getColor(context, colorRes)
                 ViewCompat.setBackgroundTintList(binding.viewStatusIndicator, ColorStateList.valueOf(color))
 
-                // Couleur du texte timer (Jaune si bientôt fini, sinon Gris/Normal)
                 val timerColor = if (session.sessionStatus == SessionStatus.WARNING) R.color.dashboard_yellow else R.color.dashboard_text_secondary
                 binding.tvTimeRemaining.setTextColor(ContextCompat.getColor(context, timerColor))
             }
 
-            // --- 3. BOUTONS ---
+            // Boutons
             val playPauseRes = if (session.isPaused) R.drawable.ic_play else R.drawable.ic_pause
             binding.ivPlayPauseControl.setImageResource(playPauseRes)
 
