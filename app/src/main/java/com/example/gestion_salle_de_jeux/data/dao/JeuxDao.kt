@@ -12,9 +12,12 @@ interface JeuxDao {
     @Update
     suspend fun updateJeux(jeux: Jeux)
 
-    // Récupérer uniquement les sessions EN COURS (non terminées)
     @Query("SELECT * FROM Jeux WHERE est_termine = 0 ORDER BY timestamp_debut DESC")
     fun getActiveSessions(): Flow<List<Jeux>>
+
+    // NOUVEAU : Pour récupérer la liste instantanée dans le ViewModel pour la boucle de pause
+    @Query("SELECT * FROM Jeux WHERE est_termine = 0")
+    suspend fun getActiveSessionsList(): List<Jeux>
 
     @Query("SELECT * FROM Jeux WHERE id = :id")
     suspend fun getJeuxById(id: Int): Jeux?

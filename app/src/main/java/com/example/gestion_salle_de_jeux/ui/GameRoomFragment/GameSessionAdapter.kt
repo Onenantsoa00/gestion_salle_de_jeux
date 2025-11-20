@@ -30,22 +30,15 @@ class GameSessionAdapter(
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GameSessionViewHolder {
-        val binding = ItemConsoleCardBinding.inflate(
-            LayoutInflater.from(parent.context),
-            parent,
-            false
-        )
+        val binding = ItemConsoleCardBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return GameSessionViewHolder(binding)
     }
 
     override fun onBindViewHolder(holder: GameSessionViewHolder, position: Int) {
-        val item = getItem(position)
-        holder.bind(item)
+        holder.bind(getItem(position))
     }
 
-    inner class GameSessionViewHolder(private val binding: ItemConsoleCardBinding) :
-        RecyclerView.ViewHolder(binding.root) {
-
+    inner class GameSessionViewHolder(private val binding: ItemConsoleCardBinding) : RecyclerView.ViewHolder(binding.root) {
         private val context: Context = binding.root.context
         private var rotationAnimator: ObjectAnimator? = null
 
@@ -54,9 +47,19 @@ class GameSessionAdapter(
             binding.tvGameName.text = "Jeu : ${session.gameName}"
             binding.tvPlayerNames.text = "Joueur : ${session.players}"
             binding.tvMatchDetails.text = "Détails : ${session.matchDetails}"
-            binding.tvTimeRemaining.text = "Temps restant : ${session.timeRemaining}"
 
-            // --- ANIMATION DU SABLIER ---
+            // --- AFFICHAGE TIMER + INFO COUPURE ---
+            if (session.isPowerCutMode) {
+                // On affiche le timer figé + l'info financière en rouge
+                binding.tvTimeRemaining.text = "${session.timeRemaining} ${session.powerCutInfo}"
+                binding.tvTimeRemaining.setTextColor(ContextCompat.getColor(context, android.R.color.holo_red_dark))
+                binding.tvTimeRemaining.setTypeface(null, android.graphics.Typeface.BOLD)
+            } else {
+                binding.tvTimeRemaining.text = "Temps restant : ${session.timeRemaining}"
+                // La couleur sera reset plus bas
+            }
+
+            // --- ANIMATION ---
             val targetView = binding.ivAddTimeLarge
             if (rotationAnimator == null) {
                 rotationAnimator = ObjectAnimator.ofFloat(targetView, "rotation", 0f, 360f).apply {
@@ -66,7 +69,6 @@ class GameSessionAdapter(
                 }
             }
 
-            // Animation active si : (Online OU Warning) ET (Pas en pause)
             val isRunning = (session.sessionStatus == SessionStatus.ONLINE || session.sessionStatus == SessionStatus.WARNING)
             val shouldAnimate = isRunning && !session.isPaused
 
@@ -74,29 +76,28 @@ class GameSessionAdapter(
                 if (!rotationAnimator!!.isRunning) rotationAnimator!!.start()
             } else {
                 if (rotationAnimator!!.isRunning) rotationAnimator!!.cancel()
-                targetView.rotation = 0f // Remise à zéro de la position
+                targetView.rotation = 0f
             }
 
-            // --- COULEURS ET INDICATEURS ---
+            // --- COULEURS ---
             if (session.sessionStatus == SessionStatus.ERROR) {
                 binding.viewStatusIndicator.visibility = View.GONE
                 binding.ivStatusIcon.visibility = View.VISIBLE
                 binding.ivStatusIcon.setImageResource(R.drawable.ic_custom_warning)
                 binding.ivStatusIcon.imageTintList = null
-                binding.tvTimeRemaining.setTextColor(ContextCompat.getColor(context, android.R.color.holo_red_dark))
+                if (!session.isPowerCutMode) binding.tvTimeRemaining.setTextColor(ContextCompat.getColor(context, android.R.color.holo_red_dark))
             } else {
                 binding.viewStatusIndicator.visibility = View.VISIBLE
                 binding.ivStatusIcon.visibility = View.GONE
-
                 val colorRes = if (session.paymentStatus == PaymentStatus.PAID) R.color.dashboard_green else R.color.dashboard_yellow
-                val color = ContextCompat.getColor(context, colorRes)
-                ViewCompat.setBackgroundTintList(binding.viewStatusIndicator, ColorStateList.valueOf(color))
+                ViewCompat.setBackgroundTintList(binding.viewStatusIndicator, ColorStateList.valueOf(ContextCompat.getColor(context, colorRes)))
 
-                val timerColor = if (session.sessionStatus == SessionStatus.WARNING) R.color.dashboard_yellow else R.color.dashboard_text_secondary
-                binding.tvTimeRemaining.setTextColor(ContextCompat.getColor(context, timerColor))
+                if (!session.isPowerCutMode) {
+                    val timerColor = if (session.sessionStatus == SessionStatus.WARNING) R.color.dashboard_yellow else R.color.dashboard_text_secondary
+                    binding.tvTimeRemaining.setTextColor(ContextCompat.getColor(context, timerColor))
+                }
             }
 
-            // Boutons
             val playPauseRes = if (session.isPaused) R.drawable.ic_play else R.drawable.ic_pause
             binding.ivPlayPauseControl.setImageResource(playPauseRes)
 
@@ -111,7 +112,6 @@ class GameSessionAdapter(
                 }
             }
 
-            // Listeners
             binding.ivPlayPauseControl.setOnClickListener { listener.onPlayPauseClicked(session) }
             binding.ivStopControl.setOnClickListener { listener.onStopClicked(session) }
             binding.ivAddTimeLarge.setOnClickListener { listener.onAddTimeClicked(session) }

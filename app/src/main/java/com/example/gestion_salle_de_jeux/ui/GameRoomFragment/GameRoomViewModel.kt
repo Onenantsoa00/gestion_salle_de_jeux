@@ -10,10 +10,13 @@ import com.example.gestion_salle_de_jeux.data.repository.FinanceRepository
 import com.example.gestion_salle_de_jeux.ui.GameRoomFragment.model.GameSession
 import com.example.gestion_salle_de_jeux.ui.GameRoomFragment.model.PaymentStatus
 import com.example.gestion_salle_de_jeux.ui.GameRoomFragment.model.SessionStatus
-import com.example.gestion_salle_de_jeux.ui.utils.SingleLiveEvent // Importez votre nouvelle classe
+import com.example.gestion_salle_de_jeux.ui.utils.SingleLiveEvent
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
 import java.util.Date
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 class GameRoomViewModel(
@@ -27,30 +30,22 @@ class GameRoomViewModel(
     private val _uiGameSessions = MediatorLiveData<List<GameSession>>()
     val gameSessions: LiveData<List<GameSession>> = _uiGameSessions
 
-    // CORRECTION : Utilisation de SingleLiveEvent pour éviter le re-déclenchement à la navigation
-    private val _alarmTrigger = SingleLiveEvent<String>()
-    val alarmTrigger: LiveData<String> = _alarmTrigger
+    private val _alarmTrigger = SingleLiveEvent<GameSession>()
+    val alarmTrigger: LiveData<GameSession> = _alarmTrigger
+
+    // État local de la coupure (pour l'affichage immédiat)
+    private var isPowerCutActive = false
 
     init {
         startTimerLoop()
 
         viewModelScope.launch {
             _dbSessions.collect { sessionsBrutes ->
-                // Quand la DB change, on met à jour la liste
-                // MAIS on doit faire attention à ne pas écraser l'état "hasSounded" local si la DB n'est pas encore à jour
                 val currentLocalList = _uiGameSessions.value ?: emptyList()
-
                 val uiSessions = sessionsBrutes.map { jeu ->
                     val mappedSession = mapEntityToUi(jeu)
-
-                    // Astuce : Si localement on sait déjà que ça a sonné, on le garde à true
-                    // même si la DB dit false (latence d'écriture)
                     val locallySounded = currentLocalList.find { it.id == mappedSession.id }?.hasSounded ?: false
-                    if (locallySounded) {
-                        mappedSession.copy(hasSounded = true)
-                    } else {
-                        mappedSession
-                    }
+                    if (locallySounded) mappedSession.copy(hasSounded = true) else mappedSession
                 }
                 _uiGameSessions.postValue(uiSessions)
             }
@@ -64,7 +59,6 @@ class GameRoomViewModel(
                     val updatedList = currentList.map { session ->
                         updateTimeForSession(session)
                     }
-                    // On ne poste que si quelque chose a changé visuellement pour éviter trop de refresh
                     _uiGameSessions.postValue(updatedList)
                 }
                 delay(1000)
@@ -91,7 +85,9 @@ class GameRoomViewModel(
             rawDurationMinutes = jeu.duree_totale_prevue,
             rawPauseStartTime = jeu.timestamp_pause_debut,
             rawTotalPauseDuration = jeu.duree_cumulee_pause,
-            hasSounded = jeu.a_sonne // Vient de la DB
+            rawTotalPrice = jeu.montant_total,
+            hasSounded = jeu.a_sonne,
+            isPowerCutMode = isPowerCutActive // Transmission de l'état
         )
     }
 
@@ -104,86 +100,173 @@ class GameRoomViewModel(
 
         val status: SessionStatus
         val timeText: String
-
-        // Variable locale pour savoir si on vient de déclencher l'alarme
         var justTriggeredAlarm = false
+
+        // Variables pour la coupure
+        var cutInfo = ""
+        var amountToPay = 0.0
+        var amountToRefund = 0.0
 
         if (diff > 0) {
             val minutes = TimeUnit.MILLISECONDS.toMinutes(diff)
             val seconds = TimeUnit.MILLISECONDS.toSeconds(diff) % 60
             timeText = String.format("%02d:%02d", minutes, seconds)
             status = if (minutes < 2 && !session.isPaused) SessionStatus.WARNING else SessionStatus.ONLINE
+
+            // --- LOGIQUE MATHÉMATIQUE COUPURE ---
+            if (session.isPowerCutMode) {
+                // 1. Calcul du temps écoulé réel (Temps total prévu - Temps restant)
+                // Note: diff est le temps restant.
+                val totalDurationMs = session.rawDurationMinutes * 60 * 1000
+                val timeConsumedMs = totalDurationMs - diff
+
+                // 2. Ratio consommé (0.0 à 1.0)
+                val ratio = if (totalDurationMs > 0) timeConsumedMs.toDouble() / totalDurationMs.toDouble() else 1.0
+
+                // 3. Calculs financiers
+                val priceConsumed = session.rawTotalPrice * ratio
+
+                if (session.paymentStatus == PaymentStatus.PAID) {
+                    // CAS 1 : DÉJÀ PAYÉ -> On doit rendre la différence
+                    amountToRefund = session.rawTotalPrice - priceConsumed
+                    // Arrondi à 100 Ar près pour éviter la petite monnaie impossible
+                    // amountToRefund = (amountToRefund / 100).toInt() * 100.0
+                    cutInfo = " | À RENDRE : ${formatMoney(amountToRefund)}"
+                } else {
+                    // CAS 2 : NON PAYÉ -> Le joueur doit payer ce qu'il a consommé
+                    amountToPay = priceConsumed
+                    cutInfo = " | À PAYER : ${formatMoney(amountToPay)}"
+                }
+            }
+
         } else {
             timeText = "TERMINÉ"
             status = SessionStatus.ERROR
 
-            // LOGIQUE ALARME ROBUSTE
-            // On sonne SI : Ce n'est pas déjà sonné (ni DB ni Local)
+            if (session.isPowerCutMode && session.paymentStatus == PaymentStatus.UNPAID) {
+                // Si coupure mais fini, il doit tout payer
+                amountToPay = session.rawTotalPrice
+                cutInfo = " | À PAYER : ${formatMoney(amountToPay)}"
+            }
+
             if (!session.hasSounded) {
-                _alarmTrigger.postValue(session.postName)
-                markAsSounded(session.id.toInt()) // Sauvegarde DB
-                justTriggeredAlarm = true // Marqueur local
+                _alarmTrigger.postValue(session)
+                markAsSounded(session.id.toInt())
+                justTriggeredAlarm = true
             }
         }
 
-        if (session.isPaused) return session.copy(timeRemaining = timeText, sessionStatus = status)
-
-        // Si on vient de sonner, on retourne immediatement hasSounded=true dans la liste UI
-        // pour que la prochaine boucle (dans 1s) ne resonne pas.
         return session.copy(
             timeRemaining = timeText,
             sessionStatus = status,
-            hasSounded = session.hasSounded || justTriggeredAlarm
+            hasSounded = session.hasSounded || justTriggeredAlarm,
+            powerCutInfo = cutInfo,
+            partialAmountToPay = amountToPay,
+            partialAmountToRefund = amountToRefund
         )
     }
 
-    private fun markAsSounded(sessionId: Int) {
+    // --- GESTION GLOBALE COUPURE ---
+    fun togglePowerCut(isCut: Boolean) {
+        isPowerCutActive = isCut
         viewModelScope.launch {
-            val jeu = jeuxDao.getJeuxById(sessionId)
-            if (jeu != null && !jeu.a_sonne) {
-                jeuxDao.updateJeux(jeu.copy(a_sonne = true))
+            val activeSessions = jeuxDao.getActiveSessionsList()
+            val now = System.currentTimeMillis()
+
+            activeSessions.forEach { jeu ->
+                if (isCut) {
+                    // COUPURE : On met tout en PAUSE si ce n'est pas déjà fait
+                    if (!jeu.est_en_pause) {
+                        jeuxDao.updateJeux(jeu.copy(
+                            est_en_pause = true,
+                            timestamp_pause_debut = now
+                        ))
+                    }
+                } else {
+                    // RETOUR COURANT : On remet tout en PLAY
+                    if (jeu.est_en_pause) {
+                        val pauseDuration = now - jeu.timestamp_pause_debut
+                        val newTotalPause = jeu.duree_cumulee_pause + pauseDuration
+                        jeuxDao.updateJeux(jeu.copy(
+                            est_en_pause = false,
+                            duree_cumulee_pause = newTotalPause,
+                            timestamp_pause_debut = 0
+                        ))
+                    }
+                }
             }
         }
     }
 
-    // --- ACTIONS UTILISATEUR ---
+    // --- PAIEMENT ---
+    fun onPaymentClicked(session: GameSession) {
+        viewModelScope.launch {
+            val jeu = jeuxDao.getJeuxById(session.id.toInt())
 
+            if (jeu != null) {
+                // LOGIQUE SPÉCIALE COUPURE
+                if (session.isPowerCutMode) {
+                    if (session.paymentStatus == PaymentStatus.UNPAID) {
+                        // 1. Marquer comme payé
+                        jeuxDao.updateJeux(jeu.copy(est_paye = true, est_termine = true)) // On termine aussi la session
+
+                        // 2. Enregistrer le montant PARTIEL (calculé)
+                        val recette = Finance(
+                            date_heure = Date(),
+                            montant_entrant = session.partialAmountToPay, // Montant calculé par le timer
+                            montant_sortant = 0.0,
+                            description = "Coupure : ${jeu.titre} (Partiel)",
+                            source = "RECETTE"
+                        )
+                        financeRepository.insert(recette)
+
+                        // 3. Libérer le poste
+                        freeMaterial(jeu.id_materiel)
+                    }
+                }
+                // LOGIQUE NORMALE
+                else {
+                    val resteAPayer = jeu.montant_total - jeu.montant_deja_paye
+                    if (resteAPayer > 0) {
+                        jeuxDao.updateJeux(jeu.copy(est_paye = true, montant_deja_paye = jeu.montant_total))
+                        val recette = Finance(
+                            date_heure = Date(),
+                            montant_entrant = resteAPayer,
+                            montant_sortant = 0.0,
+                            description = "Session : ${jeu.titre} (Complément)",
+                            source = "RECETTE"
+                        )
+                        financeRepository.insert(recette)
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun freeMaterial(materielId: Int) {
+        val materiel = materielDao.getMaterielById(materielId)
+        if (materiel != null) {
+            val usageActuel = materiel.quantite_utilise
+            val nouvelUsage = if (usageActuel > 0) usageActuel - 1 else 0
+            materielDao.update(materiel.copy(quantite_utilise = nouvelUsage))
+        }
+    }
+
+    // --- ACTIONS CLASSIQUES ---
     fun onStopClicked(session: GameSession) {
         viewModelScope.launch {
             val jeu = jeuxDao.getJeuxById(session.id.toInt())
             if (jeu != null) {
                 jeuxDao.updateJeux(jeu.copy(est_termine = true))
-                val materiel = materielDao.getMaterielById(jeu.id_materiel)
-                if (materiel != null) {
-                    val usageActuel = materiel.quantite_utilise
-                    val nouvelUsage = if (usageActuel > 0) usageActuel - 1 else 0
-                    materielDao.update(materiel.copy(quantite_utilise = nouvelUsage))
-                }
-            }
-        }
-    }
-
-    fun onPaymentClicked(session: GameSession) {
-        viewModelScope.launch {
-            val jeu = jeuxDao.getJeuxById(session.id.toInt())
-            if (jeu != null) {
-                val resteAPayer = jeu.montant_total - jeu.montant_deja_paye
-                if (resteAPayer > 0) {
-                    jeuxDao.updateJeux(jeu.copy(est_paye = true, montant_deja_paye = jeu.montant_total))
-                    val recette = Finance(
-                        date_heure = Date(),
-                        montant_entrant = resteAPayer,
-                        montant_sortant = 0.0,
-                        description = "Session : ${jeu.titre} (Complément)",
-                        source = "RECETTE"
-                    )
-                    financeRepository.insert(recette)
-                }
+                freeMaterial(jeu.id_materiel)
             }
         }
     }
 
     fun onPlayPauseClicked(session: GameSession) {
+        // Désactivé en mode coupure pour ne pas interférer
+        if (isPowerCutActive) return
+
         viewModelScope.launch {
             val jeu = jeuxDao.getJeuxById(session.id.toInt())
             if (jeu != null) {
@@ -206,7 +289,6 @@ class GameRoomViewModel(
                 val newTotalMatches = jeu.nombre_tranches + addedMatches
                 val newTotalPrice = jeu.montant_total + addedPrice
                 val newTotalDuration = jeu.duree_totale_prevue + addedDuration
-
                 jeuxDao.updateJeux(jeu.copy(
                     titre = newGameTitle,
                     nombre_tranches = newTotalMatches,
@@ -214,7 +296,7 @@ class GameRoomViewModel(
                     duree_totale_prevue = newTotalDuration,
                     est_paye = false,
                     est_termine = false,
-                    a_sonne = false // Réinitialisation pour le nouveau temps
+                    a_sonne = false
                 ))
             }
         }
@@ -222,15 +304,23 @@ class GameRoomViewModel(
 
     fun onAddTimeClicked(session: GameSession) { }
 
-    class Factory(
-        private val jeuxDao: JeuxDao,
-        private val materielDao: MaterielDao,
-        private val playeurDao: PlayeurDao,
-        private val financeRepository: FinanceRepository
-    ) : ViewModelProvider.Factory {
+    private fun formatMoney(amount: Double): String {
+        val symbols = DecimalFormatSymbols(Locale.getDefault()).apply { groupingSeparator = ' ' }
+        return "${DecimalFormat("#,##0", symbols).format(amount)} Ar"
+    }
+
+    private fun markAsSounded(sessionId: Int) {
+        viewModelScope.launch {
+            val jeu = jeuxDao.getJeuxById(sessionId)
+            if (jeu != null && !jeu.a_sonne) {
+                jeuxDao.updateJeux(jeu.copy(a_sonne = true))
+            }
+        }
+    }
+
+    class Factory(private val jeuxDao: JeuxDao, private val materielDao: MaterielDao, private val playeurDao: PlayeurDao, private val financeRepository: FinanceRepository) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            if (modelClass.isAssignableFrom(GameRoomViewModel::class.java))
-                return GameRoomViewModel(jeuxDao, materielDao, playeurDao, financeRepository) as T
+            if (modelClass.isAssignableFrom(GameRoomViewModel::class.java)) return GameRoomViewModel(jeuxDao, materielDao, playeurDao, financeRepository) as T
             throw IllegalArgumentException("Unknown ViewModel class")
         }
     }

@@ -18,7 +18,7 @@ import com.example.gestion_salle_de_jeux.data.entity.JeuLibrary
 import com.example.gestion_salle_de_jeux.data.entity.Jeux
 import com.example.gestion_salle_de_jeux.data.entity.Materiel
 import com.example.gestion_salle_de_jeux.data.entity.Playeur
-import com.example.gestion_salle_de_jeux.data.repository.FinanceRepository // Toujours utile si besoin local, mais moins critique
+import com.example.gestion_salle_de_jeux.data.repository.FinanceRepository
 import com.example.gestion_salle_de_jeux.databinding.DialogGameSessionBinding
 import com.example.gestion_salle_de_jeux.databinding.FragmentGameroomBinding
 import com.example.gestion_salle_de_jeux.ui.GameRoomFragment.model.GameSession
@@ -38,8 +38,6 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
 
     private var libraryList: List<JeuLibrary> = emptyList()
 
-    // PLUS BESOIN DE currentRingtone ICI
-
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentGameroomBinding.inflate(inflater, container, false)
         return binding.root
@@ -50,16 +48,14 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
 
         val db = AppDatabase.getDatabase(requireContext())
 
-        // --- CORRECTION : Récupération du ViewModel de l'Activité ---
-        // On utilise requireActivity() comme propriétaire pour partager l'instance créée dans MainActivity
-        // Note: On n'a plus besoin de passer la Factory ici car MainActivity l'a déjà fait.
-        // Cependant, pour la sécurité, on peut redonner la factory, ViewModelProvider s'arrangera.
+        // Injection des dépendances
         val financeRepo = FinanceRepository(db.financeDao())
-        val vmFactory = GameRoomViewModel.Factory(db.jeuxDao(), db.materielDao(), db.playeurDao(), financeRepo)
 
+        // Utilisation de requireActivity() pour partager le ViewModel avec MainActivity (pour l'alarme globale)
+        val vmFactory = GameRoomViewModel.Factory(db.jeuxDao(), db.materielDao(), db.playeurDao(), financeRepo)
         gameRoomViewModel = ViewModelProvider(requireActivity(), vmFactory)[GameRoomViewModel::class.java]
 
-        // ViewModel local pour le matériel
+        // ViewModel local pour la gestion du matériel (listes déroulantes)
         val matFactory = MaterielViewModel.MaterielViewModelFactory(db.materielDao(), db.jeuLibraryDao())
         materielViewModel = ViewModelProvider(this, matFactory)[MaterielViewModel::class.java]
 
@@ -73,49 +69,83 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
         binding.rvGameSessions.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = sessionAdapter
+            // IMPORTANT : Désactive les animations par défaut pour éviter le clignotement à chaque seconde
             itemAnimator = null
         }
     }
 
     private fun observeViewModel() {
-        // On observe la liste pour l'affichage
+        // Mise à jour de la liste des sessions (Timer, Statuts, Coupure)
         gameRoomViewModel.gameSessions.observe(viewLifecycleOwner) { sessions ->
             sessionAdapter.submitList(sessions)
         }
-
-        // PLUS D'OBSERVATION D'ALARME ICI !
-        // C'est MainActivity qui gère ça maintenant.
+        // Note : L'alarme sonore est gérée par MainActivity, pas besoin de l'observer ici.
     }
-
-    // --- TOUT LE RESTE DU CODE (Dialogues, Ajout, etc.) RESTE IDENTIQUE ---
-    // Je ne le répète pas pour ne pas saturer, car c'est exactement le même code
-    // que dans votre message précédent pour showAvailableConsolesDialog, startSession, addTime, etc.
 
     private fun setupClickListeners() {
-        binding.fabAddSession.setOnClickListener { showAvailableConsolesDialog() }
-        binding.switchPowerCut.setOnCheckedChangeListener { _, _ -> Toast.makeText(requireContext(), "État électricité changé", Toast.LENGTH_SHORT).show() }
+        // Bouton flottant (+) pour ajouter une session
+        binding.fabAddSession.setOnClickListener {
+            // On empêche l'ajout de session si on est en coupure de courant
+            if (!binding.switchPowerCut.isChecked) {
+                Toast.makeText(requireContext(), "Impossible d'ajouter une session pendant une coupure !", Toast.LENGTH_SHORT).show()
+            } else {
+                showAvailableConsolesDialog()
+            }
+        }
+
+        // --- GESTION INTERRUPTEUR ÉLECTRICITÉ ---
+        // Checked (Activé) = Électricité PRÉSENTE (Mode Normal)
+        // Unchecked (Désactivé) = Électricité COUPÉE (Mode Coupure)
+        binding.switchPowerCut.setOnCheckedChangeListener { _, isChecked ->
+            // Si isChecked est TRUE (Courant là) -> isCut est FALSE
+            // Si isChecked est FALSE (Pas de courant) -> isCut est TRUE
+            val isCut = !isChecked
+
+            gameRoomViewModel.togglePowerCut(isCut)
+
+            if (isCut) {
+                Toast.makeText(requireContext(), "COUPURE : Sessions en pause & Calculs affichés", Toast.LENGTH_LONG).show()
+                binding.tvPowerCutLabel.text = "Électricité : COUPÉE"
+                binding.tvPowerCutLabel.setTextColor(requireContext().getColor(android.R.color.holo_red_dark))
+            } else {
+                Toast.makeText(requireContext(), "COURANT RÉTABLI : Reprise des sessions", Toast.LENGTH_SHORT).show()
+                binding.tvPowerCutLabel.text = "Électricité : OK"
+                binding.tvPowerCutLabel.setTextColor(requireContext().getColor(com.example.gestion_salle_de_jeux.R.color.dashboard_text_secondary)) // Remplacez par votre couleur
+            }
+        }
     }
 
-    // (Copiez ici toutes les méthodes showAvailableConsolesDialog, loadLibraryAndShowDialog,
-    // showStartSessionDialog, calculateTotal, startSession, onAddTimeClicked,
-    // showAddTimeDialog, onStopClicked, onPlayPauseClicked, onPaymentClicked)
-    // Elles n'ont pas changé.
-
-    // ... (Méthodes copiées depuis la version précédente) ...
+    // ====================================================================================
+    // 1. DÉMARRAGE D'UNE NOUVELLE SESSION
+    // ====================================================================================
 
     private fun showAvailableConsolesDialog() {
         lifecycleScope.launch {
             val allMateriel = materielViewModel.allMateriel.first()
-            val available = allMateriel.filter { it.type == "CONSOLE" && it.quantite > it.quantite_utilise }
+
+            // Filtre : Type CONSOLE et Stock disponible
+            val available = allMateriel.filter {
+                it.type == "CONSOLE" && it.quantite > it.quantite_utilise
+            }
+
             if (available.isEmpty()) {
                 Toast.makeText(requireContext(), "Aucun poste libre (Stock épuisé)", Toast.LENGTH_SHORT).show()
                 return@launch
             }
-            val names = available.map { "${it.nom} (Total : ${it.quantite} Utilisé : ${it.quantite_utilise} | Stock : ${it.quantite - it.quantite_utilise})" }.toTypedArray()
+
+            // Affichage : "Nom (Total : X Utilisé : Y | Stock : Z)"
+            val names = available.map {
+                val stock = it.quantite - it.quantite_utilise
+                "${it.nom} (Total : ${it.quantite} Utilisé : ${it.quantite_utilise} | Stock : $stock)"
+            }.toTypedArray()
+
             AlertDialog.Builder(requireContext())
                 .setTitle("Choisir un poste")
-                .setItems(names) { _, which -> loadLibraryAndShowDialog(available[which]) }
-                .setNegativeButton("Annuler", null).show()
+                .setItems(names) { _, which ->
+                    loadLibraryAndShowDialog(available[which])
+                }
+                .setNegativeButton("Annuler", null)
+                .show()
         }
     }
 
@@ -123,6 +153,7 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
         lifecycleScope.launch {
             val db = AppDatabase.getDatabase(requireContext())
             libraryList = db.jeuLibraryDao().getJeuxForConsole(console.id).first()
+
             if (libraryList.isEmpty()) {
                 Toast.makeText(requireContext(), "Aucun jeu installé sur cette console", Toast.LENGTH_LONG).show()
                 return@launch
@@ -134,25 +165,36 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
     private fun showStartSessionDialog(console: Materiel) {
         val dBinding = DialogGameSessionBinding.inflate(layoutInflater)
         val dialog = AlertDialog.Builder(requireContext()).setView(dBinding.root).create()
+
         val gameNames = libraryList.map { it.nom_jeu }
         val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, gameNames)
         dBinding.actvGameSelection.setAdapter(adapter)
+
         var selectedLibGame: JeuLibrary? = null
+
         dBinding.actvGameSelection.setOnItemClickListener { _, _, position, _ ->
-            selectedLibGame = libraryList.find { it.nom_jeu == adapter.getItem(position) }
-            selectedLibGame?.let { dBinding.etGameType.setText("Tarif: ${it.tarif_par_tranche.toInt()} Ar / ${it.duree_tranche_min} min"); calculateTotal(dBinding, it) }
+            val name = adapter.getItem(position)
+            selectedLibGame = libraryList.find { it.nom_jeu == name }
+            selectedLibGame?.let {
+                dBinding.etGameType.setText("Tarif: ${it.tarif_par_tranche.toInt()} Ar / ${it.duree_tranche_min} min")
+                calculateTotal(dBinding, it)
+            }
         }
+
         dBinding.etAmount.hint = "Nombre de matchs"
         dBinding.etAmount.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) { selectedLibGame?.let { calculateTotal(dBinding, it) } }
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         })
+
         dBinding.btnStart.setOnClickListener {
             val playerName = dBinding.etPlayerName.text.toString()
             val nbMatchsStr = dBinding.etAmount.text.toString()
+
             if (playerName.isNotEmpty() && nbMatchsStr.isNotEmpty() && selectedLibGame != null) {
-                startSession(console, selectedLibGame!!, playerName, nbMatchsStr.toIntOrNull() ?: 1)
+                val nbMatchs = nbMatchsStr.toIntOrNull() ?: 1
+                startSession(console, selectedLibGame!!, playerName, nbMatchs)
                 dialog.dismiss()
             } else {
                 Toast.makeText(requireContext(), "Veuillez tout remplir", Toast.LENGTH_SHORT).show()
@@ -172,7 +214,10 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
     private fun startSession(console: Materiel, gameLib: JeuLibrary, playerName: String, nbMatchs: Int) {
         lifecycleScope.launch {
             val db = AppDatabase.getDatabase(requireContext())
-            val playerId = db.playeurDao().insertPlayeur(Playeur(nom = playerName, prenom = "", id_tournoi = null)).toInt()
+
+            val player = Playeur(nom = playerName, prenom = "", id_tournoi = null)
+            val playerId = db.playeurDao().insertPlayeur(player).toInt()
+
             val durationMin = (nbMatchs * gameLib.duree_tranche_min).toLong()
             val totalPrice = nbMatchs * gameLib.tarif_par_tranche
 
@@ -192,18 +237,36 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
                 a_sonne = false
             )
             db.jeuxDao().insertJeux(session)
+
+            // Mise à jour du stock (+1 utilisé)
             val materielAJour = db.materielDao().getMaterielById(console.id)
             if (materielAJour != null && materielAJour.quantite_utilise < materielAJour.quantite) {
-                db.materielDao().update(materielAJour.copy(quantite_utilise = materielAJour.quantite_utilise + 1))
-                Toast.makeText(requireContext(), "Session lancée !", Toast.LENGTH_SHORT).show()
+                val nouvelUsage = materielAJour.quantite_utilise + 1
+                db.materielDao().update(materielAJour.copy(quantite_utilise = nouvelUsage))
+
+                val reste = materielAJour.quantite - nouvelUsage
+                Toast.makeText(requireContext(), "Session lancée ! (Reste : $reste)", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(requireContext(), "Erreur : Stock théorique dépassé", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
+    // ====================================================================================
+    // 2. AJOUT DE TEMPS (Bouton +)
+    // ====================================================================================
+
     override fun onAddTimeClicked(session: GameSession) {
+        // On bloque l'ajout de temps si coupure de courant
+        if (!binding.switchPowerCut.isChecked) {
+            Toast.makeText(requireContext(), "Impossible d'ajouter du temps pendant une coupure !", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         lifecycleScope.launch {
             val db = AppDatabase.getDatabase(requireContext())
             val jeuEntity = db.jeuxDao().getJeuxById(session.id.toInt())
+
             if (jeuEntity != null) {
                 libraryList = db.jeuLibraryDao().getJeuxForConsole(jeuEntity.id_materiel).first()
                 showAddTimeDialog(session, jeuEntity)
@@ -214,49 +277,96 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
     private fun showAddTimeDialog(session: GameSession, jeuEntity: Jeux) {
         val dBinding = DialogGameSessionBinding.inflate(layoutInflater)
         val dialog = AlertDialog.Builder(requireContext()).setView(dBinding.root).create()
+
         dBinding.etPlayerName.setText(session.players)
-        dBinding.etPlayerName.isEnabled = false
+        dBinding.etPlayerName.isEnabled = false // On ne change pas le joueur
         dBinding.etPlayerName.alpha = 0.6f
+
         val gameNames = libraryList.map { it.nom_jeu }
         val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, gameNames)
         dBinding.actvGameSelection.setAdapter(adapter)
         dBinding.actvGameSelection.setText(session.gameName, false)
+
         var selectedLibGame: JeuLibrary? = libraryList.find { it.nom_jeu == session.gameName }
-        selectedLibGame?.let { dBinding.etGameType.setText("Tarif: ${it.tarif_par_tranche.toInt()} Ar / ${it.duree_tranche_min} min") }
+        selectedLibGame?.let {
+            dBinding.etGameType.setText("Tarif: ${it.tarif_par_tranche.toInt()} Ar / ${it.duree_tranche_min} min")
+        }
+
         dBinding.actvGameSelection.setOnItemClickListener { _, _, position, _ ->
             selectedLibGame = libraryList.find { it.nom_jeu == adapter.getItem(position) }
-            selectedLibGame?.let { dBinding.etGameType.setText("Tarif: ${it.tarif_par_tranche.toInt()} Ar / ${it.duree_tranche_min} min"); calculateTotal(dBinding, it) }
+            selectedLibGame?.let {
+                dBinding.etGameType.setText("Tarif: ${it.tarif_par_tranche.toInt()} Ar / ${it.duree_tranche_min} min")
+                calculateTotal(dBinding, it)
+            }
         }
+
         dBinding.etAmount.hint = "Matchs à ajouter"
         dBinding.etAmount.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) { selectedLibGame?.let { calculateTotal(dBinding, it) } }
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         })
+
         dBinding.btnStart.text = "Ajouter"
         dBinding.btnStart.setOnClickListener {
             val nbMatchsToAddStr = dBinding.etAmount.text.toString()
+
             if (nbMatchsToAddStr.isNotEmpty() && selectedLibGame != null) {
                 val nbMatchsToAdd = nbMatchsToAddStr.toIntOrNull() ?: 0
                 val addedPrice = nbMatchsToAdd * selectedLibGame!!.tarif_par_tranche
                 val addedDuration = (nbMatchsToAdd * selectedLibGame!!.duree_tranche_min).toLong()
-                gameRoomViewModel.addTime(session.id.toInt(), nbMatchsToAdd, addedPrice, addedDuration, dBinding.actvGameSelection.text.toString())
+                val newGameTitle = dBinding.actvGameSelection.text.toString()
+
+                gameRoomViewModel.addTime(
+                    sessionId = session.id.toInt(),
+                    addedMatches = nbMatchsToAdd,
+                    addedPrice = addedPrice,
+                    addedDuration = addedDuration,
+                    newGameTitle = newGameTitle
+                )
                 Toast.makeText(requireContext(), "Temps ajouté !", Toast.LENGTH_SHORT).show()
                 dialog.dismiss()
-            } else { Toast.makeText(requireContext(), "Veuillez entrer le nombre de matchs", Toast.LENGTH_SHORT).show() }
+            } else {
+                Toast.makeText(requireContext(), "Veuillez entrer le nombre de matchs", Toast.LENGTH_SHORT).show()
+            }
         }
         dBinding.btnCancel.setOnClickListener { dialog.dismiss() }
         dialog.show()
     }
 
+    // ====================================================================================
+    // 3. CONTRÔLES ADAPTER (Play, Stop, Pay)
+    // ====================================================================================
+
+    override fun onPlayPauseClicked(session: GameSession) {
+        // On interdit le Play/Pause manuel si on est en mode coupure globale
+        if (!binding.switchPowerCut.isChecked) {
+            Toast.makeText(requireContext(), "Coupure active : Contrôles bloqués", Toast.LENGTH_SHORT).show()
+            return
+        }
+        gameRoomViewModel.onPlayPauseClicked(session)
+    }
+
     override fun onStopClicked(session: GameSession) {
+        // Si coupure, on peut arrêter mais c'est mieux de passer par le paiement partiel
+        showStopConfirmationDialog(session)
+    }
+
+    private fun showStopConfirmationDialog(session: GameSession) {
         AlertDialog.Builder(requireContext())
             .setTitle("Terminer la session ?")
             .setMessage("Voulez-vous vraiment arrêter le jeu sur ${session.postName} et libérer le poste ?")
-            .setPositiveButton("Oui, Arrêter") { _, _ -> gameRoomViewModel.onStopClicked(session); Toast.makeText(requireContext(), "Session terminée", Toast.LENGTH_SHORT).show() }
-            .setNegativeButton("Annuler", null).show()
+            .setPositiveButton("Oui, Arrêter") { _, _ ->
+                gameRoomViewModel.onStopClicked(session)
+                Toast.makeText(requireContext(), "Session terminée. Poste libéré.", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Annuler", null)
+            .show()
     }
 
-    override fun onPlayPauseClicked(session: GameSession) { gameRoomViewModel.onPlayPauseClicked(session) }
-    override fun onPaymentClicked(session: GameSession) { gameRoomViewModel.onPaymentClicked(session) }
+    override fun onPaymentClicked(session: GameSession) {
+        // Cette fonction gère le paiement Normal ET le paiement partiel (Coupure)
+        // La logique est dans le ViewModel
+        gameRoomViewModel.onPaymentClicked(session)
+    }
 }

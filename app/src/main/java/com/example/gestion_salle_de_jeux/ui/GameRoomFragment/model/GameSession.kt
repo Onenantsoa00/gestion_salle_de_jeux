@@ -18,9 +18,15 @@ data class GameSession(
     val rawDurationMinutes: Long = 0,
     val rawPauseStartTime: Long = 0,
     val rawTotalPauseDuration: Long = 0,
+    val rawTotalPrice: Double = 0.0,
 
-    // NOUVEAU : État de l'alarme
-    val hasSounded: Boolean = false
+    val hasSounded: Boolean = false,
+
+    // --- NOUVEAUX CHAMPS POUR GESTION COUPURE ---
+    val isPowerCutMode: Boolean = false,
+    val powerCutInfo: String = "",     // Le texte à afficher (ex: "À rendre : 200 Ar")
+    val partialAmountToPay: Double = 0.0, // Le montant à verser en finance si on clique sur payer
+    val partialAmountToRefund: Double = 0.0 // Le montant à rendre (informatif)
 )
 
 enum class PaymentStatus { PAID, UNPAID }
