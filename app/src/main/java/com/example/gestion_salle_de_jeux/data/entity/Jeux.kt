@@ -27,11 +27,10 @@ data class Jeux(
     // ÉTATS
     @ColumnInfo(name = "est_paye") val est_paye: Boolean = false,
     @ColumnInfo(name = "est_termine") val est_termine: Boolean = false,
-
-    // GESTION PAUSE
     @ColumnInfo(name = "est_en_pause") val est_en_pause: Boolean = false,
     @ColumnInfo(name = "timestamp_pause_debut") val timestamp_pause_debut: Long = 0,
+    @ColumnInfo(name = "duree_cumulee_pause") val duree_cumulee_pause: Long = 0,
 
-    // NOUVEAU CHAMP : Total du temps passé en pause (en ms)
-    @ColumnInfo(name = "duree_cumulee_pause") val duree_cumulee_pause: Long = 0
+    // NOUVEAU CHAMP : Pour éviter de payer deux fois la même somme
+    @ColumnInfo(name = "montant_deja_paye") val montant_deja_paye: Double = 0.0
 )
