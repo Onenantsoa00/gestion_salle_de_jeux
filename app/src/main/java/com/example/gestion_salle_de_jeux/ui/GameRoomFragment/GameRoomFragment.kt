@@ -8,18 +8,17 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
-import android.widget.AutoCompleteTextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.gestion_salle_de_jeux.R
 import com.example.gestion_salle_de_jeux.data.AppDatabase
 import com.example.gestion_salle_de_jeux.data.entity.JeuLibrary
 import com.example.gestion_salle_de_jeux.data.entity.Jeux
 import com.example.gestion_salle_de_jeux.data.entity.Materiel
 import com.example.gestion_salle_de_jeux.data.entity.Playeur
+import com.example.gestion_salle_de_jeux.data.repository.FinanceRepository
 import com.example.gestion_salle_de_jeux.databinding.DialogGameSessionBinding
 import com.example.gestion_salle_de_jeux.databinding.FragmentGameroomBinding
 import com.example.gestion_salle_de_jeux.ui.GameRoomFragment.model.GameSession
@@ -48,7 +47,12 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
         super.onViewCreated(view, savedInstanceState)
 
         val db = AppDatabase.getDatabase(requireContext())
-        val vmFactory = GameRoomViewModel.Factory(db.jeuxDao(), db.materielDao(), db.playeurDao())
+
+        // CORRECTION : Création du FinanceRepository
+        val financeRepo = FinanceRepository(db.financeDao())
+
+        // CORRECTION : Injection dans le ViewModel
+        val vmFactory = GameRoomViewModel.Factory(db.jeuxDao(), db.materielDao(), db.playeurDao(), financeRepo)
         gameRoomViewModel = ViewModelProvider(this, vmFactory)[GameRoomViewModel::class.java]
 
         val matFactory = MaterielViewModel.MaterielViewModelFactory(db.materielDao(), db.jeuLibraryDao())
@@ -81,12 +85,10 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
         }
     }
 
-    // CORRECTION ICI : Affichage des détails de stock formaté
     private fun showAvailableConsolesDialog() {
         lifecycleScope.launch {
             val allMateriel = materielViewModel.allMateriel.first()
 
-            // On filtre : Il faut que le stock (Total - Utilisé) soit > 0
             val available = allMateriel.filter {
                 it.type == "CONSOLE" && it.quantite > it.quantite_utilise
             }
@@ -96,7 +98,6 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
                 return@launch
             }
 
-            // CORRECTION : Formatage "Nom (Total : X Utilisé : Y | Stock : Z)"
             val names = available.map {
                 val stock = it.quantite - it.quantite_utilise
                 "${it.nom} (Total : ${it.quantite} Utilisé : ${it.quantite_utilise} | Stock : $stock)"
@@ -199,15 +200,11 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
             )
             db.jeuxDao().insertJeux(session)
 
-            // Mise à jour du compteur (Incrémentation)
             val materielAJour = db.materielDao().getMaterielById(console.id)
-
             if (materielAJour != null && materielAJour.quantite_utilise < materielAJour.quantite) {
                 val nouvelUsage = materielAJour.quantite_utilise + 1
                 db.materielDao().update(materielAJour.copy(quantite_utilise = nouvelUsage))
-
-                val nouveauStock = materielAJour.quantite - nouvelUsage
-                Toast.makeText(requireContext(), "Session lancée ! (Reste : $nouveauStock)", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Session lancée !", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(requireContext(), "Erreur : Stock théorique dépassé", Toast.LENGTH_SHORT).show()
             }

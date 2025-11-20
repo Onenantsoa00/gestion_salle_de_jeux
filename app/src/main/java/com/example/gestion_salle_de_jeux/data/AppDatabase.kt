@@ -11,7 +11,7 @@ import com.example.gestion_salle_de_jeux.data.entity.*
 
 @Database(
     entities = [Finance::class, Jeux::class, Materiel::class, Playeur::class, Reserve::class, Tournoi::class, JeuLibrary::class],
-    version = 8, // Nouvelle version
+    version = 9, // Nouvelle version
     exportSchema = false
 )
 @TypeConverters(DateConverter::class)
