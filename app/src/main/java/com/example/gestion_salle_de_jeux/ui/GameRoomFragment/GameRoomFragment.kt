@@ -1,9 +1,6 @@
 package com.example.gestion_salle_de_jeux.ui.GameRoomFragment
 
 import android.app.AlertDialog
-import android.media.AudioAttributes
-import android.media.Ringtone
-import android.media.RingtoneManager
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -21,7 +18,7 @@ import com.example.gestion_salle_de_jeux.data.entity.JeuLibrary
 import com.example.gestion_salle_de_jeux.data.entity.Jeux
 import com.example.gestion_salle_de_jeux.data.entity.Materiel
 import com.example.gestion_salle_de_jeux.data.entity.Playeur
-import com.example.gestion_salle_de_jeux.data.repository.FinanceRepository
+import com.example.gestion_salle_de_jeux.data.repository.FinanceRepository // Toujours utile si besoin local, mais moins critique
 import com.example.gestion_salle_de_jeux.databinding.DialogGameSessionBinding
 import com.example.gestion_salle_de_jeux.databinding.FragmentGameroomBinding
 import com.example.gestion_salle_de_jeux.ui.GameRoomFragment.model.GameSession
@@ -41,8 +38,7 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
 
     private var libraryList: List<JeuLibrary> = emptyList()
 
-    // Variable pour gérer la sonnerie
-    private var currentRingtone: Ringtone? = null
+    // PLUS BESOIN DE currentRingtone ICI
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentGameroomBinding.inflate(inflater, container, false)
@@ -53,10 +49,17 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
         super.onViewCreated(view, savedInstanceState)
 
         val db = AppDatabase.getDatabase(requireContext())
+
+        // --- CORRECTION : Récupération du ViewModel de l'Activité ---
+        // On utilise requireActivity() comme propriétaire pour partager l'instance créée dans MainActivity
+        // Note: On n'a plus besoin de passer la Factory ici car MainActivity l'a déjà fait.
+        // Cependant, pour la sécurité, on peut redonner la factory, ViewModelProvider s'arrangera.
         val financeRepo = FinanceRepository(db.financeDao())
         val vmFactory = GameRoomViewModel.Factory(db.jeuxDao(), db.materielDao(), db.playeurDao(), financeRepo)
-        gameRoomViewModel = ViewModelProvider(this, vmFactory)[GameRoomViewModel::class.java]
 
+        gameRoomViewModel = ViewModelProvider(requireActivity(), vmFactory)[GameRoomViewModel::class.java]
+
+        // ViewModel local pour le matériel
         val matFactory = MaterielViewModel.MaterielViewModelFactory(db.materielDao(), db.jeuLibraryDao())
         materielViewModel = ViewModelProvider(this, matFactory)[MaterielViewModel::class.java]
 
@@ -75,79 +78,30 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
     }
 
     private fun observeViewModel() {
+        // On observe la liste pour l'affichage
         gameRoomViewModel.gameSessions.observe(viewLifecycleOwner) { sessions ->
             sessionAdapter.submitList(sessions)
         }
 
-        // CORRECTION ICI : Observation du déclencheur d'alarme
-        gameRoomViewModel.alarmTrigger.observe(viewLifecycleOwner) { postName ->
-            // Affiche un message
-            Toast.makeText(requireContext(), "TEMPS ÉCOULÉ : $postName", Toast.LENGTH_LONG).show()
-            // Joue le son
-            playAlarmSound()
-            // Affiche une dialogue pour arrêter le son
-            showAlarmDialog(postName)
-        }
+        // PLUS D'OBSERVATION D'ALARME ICI !
+        // C'est MainActivity qui gère ça maintenant.
     }
 
-    // --- GESTION SONORE ---
-    private fun playAlarmSound() {
-        try {
-            // On récupère l'URI de l'alarme par défaut (très fort)
-            var notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-
-            // Si pas d'alarme définie, on prend la sonnerie d'appel
-            if (notification == null) {
-                notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-            }
-
-            val r = RingtoneManager.getRingtone(requireContext(), notification)
-
-            // Configuration pour jouer fort (Stream ALARM)
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-                r.audioAttributes = AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-            }
-
-            r.play()
-            currentRingtone = r
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    private fun stopAlarmSound() {
-        currentRingtone?.stop()
-    }
-
-    private fun showAlarmDialog(postName: String) {
-        // Une petite dialogue pour permettre d'arrêter le son facilement
-        AlertDialog.Builder(requireContext())
-            .setTitle("FIN DE SESSION")
-            .setMessage("Le temps est écoulé pour : $postName")
-            .setPositiveButton("OK, Arrêter le son") { _, _ ->
-                stopAlarmSound()
-            }
-            .setCancelable(false) // Oblige à cliquer pour arrêter
-            .show()
-    }
-
-    // Arrêt du son si on quitte l'écran
-    override fun onDestroyView() {
-        stopAlarmSound()
-        super.onDestroyView()
-        _binding = null
-    }
-
-
-    // --- RESTE DU CODE (Logique UI inchangée) ---
+    // --- TOUT LE RESTE DU CODE (Dialogues, Ajout, etc.) RESTE IDENTIQUE ---
+    // Je ne le répète pas pour ne pas saturer, car c'est exactement le même code
+    // que dans votre message précédent pour showAvailableConsolesDialog, startSession, addTime, etc.
 
     private fun setupClickListeners() {
         binding.fabAddSession.setOnClickListener { showAvailableConsolesDialog() }
-        binding.switchPowerCut.setOnCheckedChangeListener { _, _ -> }
+        binding.switchPowerCut.setOnCheckedChangeListener { _, _ -> Toast.makeText(requireContext(), "État électricité changé", Toast.LENGTH_SHORT).show() }
     }
+
+    // (Copiez ici toutes les méthodes showAvailableConsolesDialog, loadLibraryAndShowDialog,
+    // showStartSessionDialog, calculateTotal, startSession, onAddTimeClicked,
+    // showAddTimeDialog, onStopClicked, onPlayPauseClicked, onPaymentClicked)
+    // Elles n'ont pas changé.
+
+    // ... (Méthodes copiées depuis la version précédente) ...
 
     private fun showAvailableConsolesDialog() {
         lifecycleScope.launch {
@@ -234,7 +188,8 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
                 montant_total = totalPrice,
                 est_paye = false,
                 est_termine = false,
-                montant_deja_paye = 0.0
+                montant_deja_paye = 0.0,
+                a_sonne = false
             )
             db.jeuxDao().insertJeux(session)
             val materielAJour = db.materielDao().getMaterielById(console.id)

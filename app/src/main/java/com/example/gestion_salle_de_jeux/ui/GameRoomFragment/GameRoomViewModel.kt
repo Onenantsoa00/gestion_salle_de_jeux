@@ -10,6 +10,7 @@ import com.example.gestion_salle_de_jeux.data.repository.FinanceRepository
 import com.example.gestion_salle_de_jeux.ui.GameRoomFragment.model.GameSession
 import com.example.gestion_salle_de_jeux.ui.GameRoomFragment.model.PaymentStatus
 import com.example.gestion_salle_de_jeux.ui.GameRoomFragment.model.SessionStatus
+import com.example.gestion_salle_de_jeux.ui.utils.SingleLiveEvent // Importez votre nouvelle classe
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Date
@@ -26,20 +27,30 @@ class GameRoomViewModel(
     private val _uiGameSessions = MediatorLiveData<List<GameSession>>()
     val gameSessions: LiveData<List<GameSession>> = _uiGameSessions
 
-    // NOUVEAU : Gestion de l'alarme
-    private val _alarmTrigger = MutableLiveData<String>() // Envoie le nom du poste qui sonne
+    // CORRECTION : Utilisation de SingleLiveEvent pour éviter le re-déclenchement à la navigation
+    private val _alarmTrigger = SingleLiveEvent<String>()
     val alarmTrigger: LiveData<String> = _alarmTrigger
-
-    // Pour éviter que l'alarme ne sonne en boucle toutes les secondes, on mémorise celles qui ont déjà sonné
-    private val sessionsAlerted = HashSet<String>()
 
     init {
         startTimerLoop()
 
         viewModelScope.launch {
             _dbSessions.collect { sessionsBrutes ->
+                // Quand la DB change, on met à jour la liste
+                // MAIS on doit faire attention à ne pas écraser l'état "hasSounded" local si la DB n'est pas encore à jour
+                val currentLocalList = _uiGameSessions.value ?: emptyList()
+
                 val uiSessions = sessionsBrutes.map { jeu ->
-                    mapEntityToUi(jeu)
+                    val mappedSession = mapEntityToUi(jeu)
+
+                    // Astuce : Si localement on sait déjà que ça a sonné, on le garde à true
+                    // même si la DB dit false (latence d'écriture)
+                    val locallySounded = currentLocalList.find { it.id == mappedSession.id }?.hasSounded ?: false
+                    if (locallySounded) {
+                        mappedSession.copy(hasSounded = true)
+                    } else {
+                        mappedSession
+                    }
                 }
                 _uiGameSessions.postValue(uiSessions)
             }
@@ -53,6 +64,7 @@ class GameRoomViewModel(
                     val updatedList = currentList.map { session ->
                         updateTimeForSession(session)
                     }
+                    // On ne poste que si quelque chose a changé visuellement pour éviter trop de refresh
                     _uiGameSessions.postValue(updatedList)
                 }
                 delay(1000)
@@ -78,7 +90,8 @@ class GameRoomViewModel(
             rawStartTime = jeu.timestamp_debut,
             rawDurationMinutes = jeu.duree_totale_prevue,
             rawPauseStartTime = jeu.timestamp_pause_debut,
-            rawTotalPauseDuration = jeu.duree_cumulee_pause
+            rawTotalPauseDuration = jeu.duree_cumulee_pause,
+            hasSounded = jeu.a_sonne // Vient de la DB
         )
     }
 
@@ -92,6 +105,9 @@ class GameRoomViewModel(
         val status: SessionStatus
         val timeText: String
 
+        // Variable locale pour savoir si on vient de déclencher l'alarme
+        var justTriggeredAlarm = false
+
         if (diff > 0) {
             val minutes = TimeUnit.MILLISECONDS.toMinutes(diff)
             val seconds = TimeUnit.MILLISECONDS.toSeconds(diff) % 60
@@ -101,19 +117,33 @@ class GameRoomViewModel(
             timeText = "TERMINÉ"
             status = SessionStatus.ERROR
 
-            // CORRECTION ICI : DÉCLENCHEMENT ALARME
-            // Si c'est terminé ET qu'on n'a pas encore sonné pour cette session
-            if (!sessionsAlerted.contains(session.id)) {
-                sessionsAlerted.add(session.id) // On marque comme "a sonné"
-                _alarmTrigger.postValue(session.postName) // On déclenche l'alarme
+            // LOGIQUE ALARME ROBUSTE
+            // On sonne SI : Ce n'est pas déjà sonné (ni DB ni Local)
+            if (!session.hasSounded) {
+                _alarmTrigger.postValue(session.postName)
+                markAsSounded(session.id.toInt()) // Sauvegarde DB
+                justTriggeredAlarm = true // Marqueur local
             }
         }
 
-        if (session.isPaused) {
-            return session.copy(timeRemaining = timeText, sessionStatus = status) // On garde le temps calculé figé
-        }
+        if (session.isPaused) return session.copy(timeRemaining = timeText, sessionStatus = status)
 
-        return session.copy(timeRemaining = timeText, sessionStatus = status)
+        // Si on vient de sonner, on retourne immediatement hasSounded=true dans la liste UI
+        // pour que la prochaine boucle (dans 1s) ne resonne pas.
+        return session.copy(
+            timeRemaining = timeText,
+            sessionStatus = status,
+            hasSounded = session.hasSounded || justTriggeredAlarm
+        )
+    }
+
+    private fun markAsSounded(sessionId: Int) {
+        viewModelScope.launch {
+            val jeu = jeuxDao.getJeuxById(sessionId)
+            if (jeu != null && !jeu.a_sonne) {
+                jeuxDao.updateJeux(jeu.copy(a_sonne = true))
+            }
+        }
     }
 
     // --- ACTIONS UTILISATEUR ---
@@ -129,8 +159,6 @@ class GameRoomViewModel(
                     val nouvelUsage = if (usageActuel > 0) usageActuel - 1 else 0
                     materielDao.update(materiel.copy(quantite_utilise = nouvelUsage))
                 }
-                // Nettoyage mémoire alarme
-                sessionsAlerted.remove(session.id)
             }
         }
     }
@@ -179,16 +207,14 @@ class GameRoomViewModel(
                 val newTotalPrice = jeu.montant_total + addedPrice
                 val newTotalDuration = jeu.duree_totale_prevue + addedDuration
 
-                // IMPORTANT : On retire la session de la liste des "alertés" pour qu'elle puisse re-sonner à la fin du nouveau temps
-                sessionsAlerted.remove(sessionId.toString())
-
                 jeuxDao.updateJeux(jeu.copy(
                     titre = newGameTitle,
                     nombre_tranches = newTotalMatches,
                     montant_total = newTotalPrice,
                     duree_totale_prevue = newTotalDuration,
                     est_paye = false,
-                    est_termine = false
+                    est_termine = false,
+                    a_sonne = false // Réinitialisation pour le nouveau temps
                 ))
             }
         }

@@ -7,17 +7,20 @@ data class GameSession(
     val gameName: String,
     val players: String,
     val matchDetails: String,
-    val timeRemaining: String, // Le texte affiché (ex: "12:30")
+    val timeRemaining: String,
     val paymentStatus: PaymentStatus,
     val sessionStatus: SessionStatus,
 
-    val isPaused: Boolean, // Pour savoir si on doit arrêter l'animation
+    val isPaused: Boolean,
 
-    // Données brutes pour calculs internes
+    // Données internes
     val rawStartTime: Long = 0,
     val rawDurationMinutes: Long = 0,
     val rawPauseStartTime: Long = 0,
-    val rawTotalPauseDuration: Long = 0
+    val rawTotalPauseDuration: Long = 0,
+
+    // NOUVEAU : État de l'alarme
+    val hasSounded: Boolean = false
 )
 
 enum class PaymentStatus { PAID, UNPAID }

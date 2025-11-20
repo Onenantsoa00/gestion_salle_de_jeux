@@ -24,13 +24,15 @@ data class Jeux(
     @ColumnInfo(name = "duree_totale_prevue") val duree_totale_prevue: Long,
     @ColumnInfo(name = "montant_total") val montant_total: Double,
 
-    // ÉTATS
     @ColumnInfo(name = "est_paye") val est_paye: Boolean = false,
     @ColumnInfo(name = "est_termine") val est_termine: Boolean = false,
+
     @ColumnInfo(name = "est_en_pause") val est_en_pause: Boolean = false,
     @ColumnInfo(name = "timestamp_pause_debut") val timestamp_pause_debut: Long = 0,
     @ColumnInfo(name = "duree_cumulee_pause") val duree_cumulee_pause: Long = 0,
 
-    // NOUVEAU CHAMP : Pour éviter de payer deux fois la même somme
-    @ColumnInfo(name = "montant_deja_paye") val montant_deja_paye: Double = 0.0
+    @ColumnInfo(name = "montant_deja_paye") val montant_deja_paye: Double = 0.0,
+
+    // NOUVEAU CHAMP : Pour se souvenir que l'alarme a déjà sonné
+    @ColumnInfo(name = "a_sonne") val a_sonne: Boolean = false
 )
