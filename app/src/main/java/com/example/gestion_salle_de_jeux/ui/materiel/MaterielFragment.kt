@@ -6,6 +6,7 @@ import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.LayerDrawable
 import android.os.Bundle
+import android.text.InputType
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -30,8 +31,6 @@ class MaterielFragment : Fragment() {
 
     private lateinit var viewModel: MaterielViewModel
     private lateinit var adapter: MaterielAdapter
-
-    // Variable pour gérer l'animation active
     private var activeWaterEffect: WaterBorderDrawable? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -50,7 +49,6 @@ class MaterielFragment : Fragment() {
         setupClickListeners()
         observeViewModel()
 
-        // Initialisation : On sélectionne "Matériel" par défaut
         selectMaterielTab()
     }
 
@@ -66,40 +64,23 @@ class MaterielFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
-        // CORRECTION : Gestion manuelle des clics (plus de ToggleGroup)
-
-        binding.btnTabMateriel.setOnClickListener {
-            selectMaterielTab()
-        }
-
-        binding.btnTabJeux.setOnClickListener {
-            selectJeuxTab()
-        }
-
-        binding.fabAddMateriel.setOnClickListener {
-            showAddEditMaterielDialog(null)
-        }
+        binding.btnTabMateriel.setOnClickListener { selectMaterielTab() }
+        binding.btnTabJeux.setOnClickListener { selectJeuxTab() }
+        binding.fabAddMateriel.setOnClickListener { showAddEditMaterielDialog(null) }
     }
 
-    // Fonctions pour changer d'onglet proprement
     private fun selectMaterielTab() {
-        // Logique Métier
         adapter.setGameMode(false)
         viewModel.setTabMode(false)
         binding.fabAddMateriel.show()
-
-        // Logique Visuelle (Effet Eau)
         applyWaterEffect(binding.btnTabMateriel)
         clearWaterEffect(binding.btnTabJeux)
     }
 
     private fun selectJeuxTab() {
-        // Logique Métier
         adapter.setGameMode(true)
         viewModel.setTabMode(true)
         binding.fabAddMateriel.hide()
-
-        // Logique Visuelle (Effet Eau)
         applyWaterEffect(binding.btnTabJeux)
         clearWaterEffect(binding.btnTabMateriel)
     }
@@ -112,41 +93,7 @@ class MaterielFragment : Fragment() {
     }
 
     // ================================================================================
-    // EFFET VISUEL EAU (Water Flow)
-    // ================================================================================
-
-    private fun applyWaterEffect(button: MaterialButton) {
-        // 1. Créer l'effet d'eau
-        val waterDrawable = WaterBorderDrawable(
-            strokeWidth = 8f,
-            cornerRadius = button.cornerRadius.toFloat()
-        )
-
-        // 2. Créer le fond normal du bouton
-        // Note : on utilise la couleur de fond du dashboard pour que l'intérieur soit opaque
-        val backgroundDrawable = ColorDrawable(ContextCompat.getColor(requireContext(), R.color.dashboard_background))
-
-        // 3. Combiner (Fond + Bordure Eau par dessus)
-        val layers = arrayOf(backgroundDrawable, waterDrawable)
-        val layerDrawable = LayerDrawable(layers)
-
-        // 4. Appliquer au bouton
-        button.backgroundTintList = null // Important : désactiver le tint par défaut
-        button.background = layerDrawable
-        button.setTextColor(Color.WHITE) // Texte brillant pour l'actif
-    }
-
-    private fun clearWaterEffect(button: MaterialButton) {
-        // On remet le bouton à son état "inactif"
-        button.background = null
-        // On réapplique le tint pour avoir la couleur de fond simple
-        button.backgroundTintList = ContextCompat.getColorStateList(requireContext(), R.color.dashboard_background)
-        button.strokeWidth = 0
-        button.setTextColor(Color.GRAY) // Texte grisé pour l'inactif
-    }
-
-    // ================================================================================
-    // GESTION AVANCÉE DES JEUX (Modifier / Supprimer)
+    // GESTION AVANCÉE DES JEUX (CORRIGÉE POUR INCLURE PRIX ET DURÉE)
     // ================================================================================
     private fun showGamesManagementDialog(consoleItem: MaterialUiItem) {
         val context = requireContext()
@@ -161,46 +108,52 @@ class MaterielFragment : Fragment() {
             textSize = 20f
             setTypeface(null, Typeface.BOLD)
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply { bottomMargin = 30 }
         }
         mainLayout.addView(title)
 
         val scrollContainer = ScrollView(context).apply {
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                0
+                LinearLayout.LayoutParams.MATCH_PARENT, 0
             ).apply { weight = 1f }
         }
 
-        val listLayout = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-        }
+        val listLayout = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
         scrollContainer.addView(listLayout)
         mainLayout.addView(scrollContainer)
 
-        val addLayout = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = 20 }
+        // --- FORMULAIRE D'AJOUT ---
+        val addTitle = TextView(context).apply { text = "Ajouter un jeu :"; textSize = 14f; setTypeface(null, Typeface.BOLD); top = 20 }
+        mainLayout.addView(addTitle)
+
+        val inputLayout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
         }
 
-        val inputGame = EditText(context).apply {
-            hint = "Nouveau jeu..."
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply { weight = 1f }
+        // Champ 1 : Nom
+        val inputGame = EditText(context).apply { hint = "Nom du jeu (ex: PES 2024)" }
+
+        // Champ 2 : Prix
+        val inputPrice = EditText(context).apply {
+            hint = "Tarif (Ar) (ex: 400)"
+            inputType = InputType.TYPE_CLASS_NUMBER
         }
 
-        val btnAdd = Button(context).apply {
-            text = "Ajouter"
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        // Champ 3 : Durée
+        val inputDuration = EditText(context).apply {
+            hint = "Durée (min) (ex: 10)"
+            inputType = InputType.TYPE_CLASS_NUMBER
         }
 
-        addLayout.addView(inputGame)
-        addLayout.addView(btnAdd)
-        mainLayout.addView(addLayout)
+        val btnAdd = Button(context).apply { text = "Ajouter le jeu" }
+
+        inputLayout.addView(inputGame)
+        inputLayout.addView(inputPrice)
+        inputLayout.addView(inputDuration)
+        inputLayout.addView(btnAdd)
+        mainLayout.addView(inputLayout)
 
         val dialog = AlertDialog.Builder(context)
             .setView(mainLayout)
@@ -209,20 +162,29 @@ class MaterielFragment : Fragment() {
 
         btnAdd.setOnClickListener {
             val gameName = inputGame.text.toString().trim()
-            if (gameName.isNotEmpty()) {
-                viewModel.addGameToConsole(consoleItem.id, gameName)
+            val priceStr = inputPrice.text.toString().trim()
+            val durationStr = inputDuration.text.toString().trim()
+
+            if (gameName.isNotEmpty() && priceStr.isNotEmpty() && durationStr.isNotEmpty()) {
+                val price = priceStr.toDoubleOrNull() ?: 0.0
+                val duration = durationStr.toIntOrNull() ?: 0
+
+                // Appel ViewModel avec les 4 paramètres
+                viewModel.addGameToConsole(consoleItem.id, gameName, price, duration)
+
                 inputGame.text.clear()
+                inputPrice.text.clear()
+                inputDuration.text.clear()
+                Toast.makeText(context, "Jeu ajouté !", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Veuillez tout remplir", Toast.LENGTH_SHORT).show()
             }
         }
 
         viewModel.getGamesForConsole(consoleItem.id).observe(viewLifecycleOwner) { games ->
             listLayout.removeAllViews()
-
             if (games.isEmpty()) {
-                val emptyView = TextView(context).apply {
-                    text = "Aucun jeu installé."
-                    setPadding(10, 20, 10, 20)
-                }
+                val emptyView = TextView(context).apply { text = "Aucun jeu."; setPadding(10, 20, 10, 20) }
                 listLayout.addView(emptyView)
             } else {
                 games.forEach { jeu ->
@@ -232,9 +194,10 @@ class MaterielFragment : Fragment() {
                         setPadding(0, 15, 0, 15)
                     }
 
+                    // Affichage : Nom + Tarif
                     val tvName = TextView(context).apply {
-                        text = "• ${jeu.nom_jeu}"
-                        textSize = 16f
+                        text = "${jeu.nom_jeu}\n(${jeu.tarif_par_tranche.toInt()}Ar / ${jeu.duree_tranche_min}min)"
+                        textSize = 14f
                         layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply { weight = 1f }
                     }
 
@@ -255,14 +218,14 @@ class MaterielFragment : Fragment() {
                     row.addView(tvName)
                     row.addView(btnEdit)
                     row.addView(btnDelete)
+                    listLayout.addView(row)
 
+                    // Séparateur
                     val divider = View(context).apply {
                         layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1)
                         setBackgroundColor(ContextCompat.getColor(context, android.R.color.darker_gray))
                         alpha = 0.2f
                     }
-
-                    listLayout.addView(row)
                     listLayout.addView(divider)
                 }
             }
@@ -270,19 +233,41 @@ class MaterielFragment : Fragment() {
         dialog.show()
     }
 
+    // --- MODIFICATION D'UN JEU ---
     private fun showEditGameDialog(jeu: JeuLibrary) {
-        val input = EditText(requireContext())
-        input.setText(jeu.nom_jeu)
-        input.setSelection(input.text.length)
+        val context = requireContext()
+        val layout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(40, 20, 40, 20)
+        }
 
-        AlertDialog.Builder(requireContext())
+        val inputName = EditText(context).apply { setText(jeu.nom_jeu); hint = "Nom" }
+        val inputPrice = EditText(context).apply {
+            setText(jeu.tarif_par_tranche.toInt().toString())
+            hint = "Prix"
+            inputType = InputType.TYPE_CLASS_NUMBER
+        }
+        val inputDuration = EditText(context).apply {
+            setText(jeu.duree_tranche_min.toString())
+            hint = "Durée (min)"
+            inputType = InputType.TYPE_CLASS_NUMBER
+        }
+
+        layout.addView(inputName)
+        layout.addView(inputPrice)
+        layout.addView(inputDuration)
+
+        AlertDialog.Builder(context)
             .setTitle("Modifier le jeu")
-            .setView(input)
+            .setView(layout)
             .setPositiveButton("OK") { _, _ ->
-                val newName = input.text.toString().trim()
-                if (newName.isNotEmpty()) {
-                    viewModel.updateGame(jeu, newName)
-                    Toast.makeText(requireContext(), "Modifié !", Toast.LENGTH_SHORT).show()
+                val name = inputName.text.toString().trim()
+                val price = inputPrice.text.toString().toDoubleOrNull() ?: jeu.tarif_par_tranche
+                val duration = inputDuration.text.toString().toIntOrNull() ?: jeu.duree_tranche_min
+
+                if (name.isNotEmpty()) {
+                    viewModel.updateGame(jeu, name, price, duration)
+                    Toast.makeText(context, "Modifié !", Toast.LENGTH_SHORT).show()
                 }
             }
             .setNegativeButton("Annuler", null)
@@ -291,9 +276,9 @@ class MaterielFragment : Fragment() {
 
     private fun showDeleteConfirmDialog(jeu: JeuLibrary) {
         AlertDialog.Builder(requireContext())
-            .setTitle("Supprimer ce jeu ?")
-            .setMessage("Voulez-vous vraiment supprimer '${jeu.nom_jeu}' ?")
-            .setPositiveButton("Oui, Supprimer") { _, _ ->
+            .setTitle("Supprimer ?")
+            .setMessage("Supprimer '${jeu.nom_jeu}' ?")
+            .setPositiveButton("Oui") { _, _ ->
                 viewModel.deleteGame(jeu)
                 Toast.makeText(requireContext(), "Supprimé !", Toast.LENGTH_SHORT).show()
             }
@@ -301,9 +286,27 @@ class MaterielFragment : Fragment() {
             .show()
     }
 
-    // ================================================================================
-    // GESTION MATÉRIEL
-    // ================================================================================
+    // --- GESTION EFFET EAU (Reste inchangé) ---
+    private fun applyWaterEffect(button: MaterialButton) {
+        val waterDrawable = WaterBorderDrawable(strokeWidth = 8f, cornerRadius = button.cornerRadius.toFloat())
+        val bg = ColorDrawable(ContextCompat.getColor(requireContext(), R.color.dashboard_background)).mutate()
+        val layers = arrayOf(bg, waterDrawable)
+        button.backgroundTintList = null
+        button.background = LayerDrawable(layers)
+        button.setTextColor(Color.WHITE)
+        waterDrawable.start()
+        activeWaterEffect?.stop()
+        activeWaterEffect = waterDrawable
+    }
+
+    private fun clearWaterEffect(button: MaterialButton) {
+        button.background = null
+        button.backgroundTintList = ContextCompat.getColorStateList(requireContext(), R.color.dashboard_background)
+        button.strokeWidth = 0
+        button.setTextColor(Color.GRAY)
+    }
+
+    // --- DIALOGUE AJOUT MATERIEL (Reste inchangé, je le remets pour la complétion) ---
     private fun showAddEditMaterielDialog(itemToEdit: MaterialUiItem?) {
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_materiel, null)
         val etNom = dialogView.findViewById<EditText>(R.id.et_materiel_nom)

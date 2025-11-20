@@ -11,7 +11,7 @@ import com.example.gestion_salle_de_jeux.data.entity.*
 
 @Database(
     entities = [Finance::class, Jeux::class, Materiel::class, Playeur::class, Reserve::class, Tournoi::class, JeuLibrary::class],
-    version = 5, // Version augmentée pour inclure la colonne 'source'
+    version = 8, // Nouvelle version
     exportSchema = false
 )
 @TypeConverters(DateConverter::class)
@@ -23,17 +23,11 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun jeuLibraryDao(): JeuLibraryDao
 
     companion object {
-        @Volatile
-        private var INSTANCE: AppDatabase? = null
-
+        @Volatile private var INSTANCE: AppDatabase? = null
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    "gestion_salle_jeux_db"
-                )
-                    .fallbackToDestructiveMigration() // Important pour recréer la table
+                val instance = Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, "gestion_salle_jeux_db")
+                    .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
                 instance

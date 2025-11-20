@@ -2,6 +2,8 @@ package com.example.gestion_salle_de_jeux.ui.GameRoomFragment
 
 import android.app.AlertDialog
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,6 +16,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.gestion_salle_de_jeux.R
 import com.example.gestion_salle_de_jeux.data.AppDatabase
+import com.example.gestion_salle_de_jeux.data.entity.JeuLibrary
 import com.example.gestion_salle_de_jeux.data.entity.Jeux
 import com.example.gestion_salle_de_jeux.data.entity.Materiel
 import com.example.gestion_salle_de_jeux.data.entity.Playeur
@@ -30,20 +33,13 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
     private var _binding: FragmentGameroomBinding? = null
     private val binding get() = _binding!!
 
-    // Nouveaux ViewModel et Adapter pour la nouvelle UI
     private lateinit var gameRoomViewModel: GameRoomViewModel
     private lateinit var sessionAdapter: GameSessionAdapter
-
-    // ViewModel existant pour la logique de démarrage de session
     private lateinit var materielViewModel: MaterielViewModel
 
-    private var jeuxList: List<Jeux> = emptyList()
+    private var libraryList: List<JeuLibrary> = emptyList()
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentGameroomBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -51,22 +47,16 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Initialisation du ViewModel pour la liste des sessions
-        gameRoomViewModel = ViewModelProvider(this)[GameRoomViewModel::class.java]
+        val db = AppDatabase.getDatabase(requireContext())
+        val vmFactory = GameRoomViewModel.Factory(db.jeuxDao(), db.materielDao(), db.playeurDao())
+        gameRoomViewModel = ViewModelProvider(this, vmFactory)[GameRoomViewModel::class.java]
 
-        // Initialisation du ViewModel pour le Matériel
-        val database = AppDatabase.getDatabase(requireContext())
-        val materielDao = database.materielDao()
-        val jeuLibraryDao = database.jeuLibraryDao() // 1. On récupère le nouveau DAO
-
-        // 2. On passe les deux DAO à la Factory (Correction de l'erreur)
-        val viewModelFactory = MaterielViewModel.MaterielViewModelFactory(materielDao, jeuLibraryDao)
-        materielViewModel = ViewModelProvider(this, viewModelFactory)[MaterielViewModel::class.java]
+        val matFactory = MaterielViewModel.MaterielViewModelFactory(db.materielDao(), db.jeuLibraryDao())
+        materielViewModel = ViewModelProvider(this, matFactory)[MaterielViewModel::class.java]
 
         setupRecyclerView()
         setupClickListeners()
         observeViewModel()
-        loadGames()
     }
 
     private fun setupRecyclerView() {
@@ -84,220 +74,133 @@ class GameRoomFragment : Fragment(), GameSessionAdapter.OnSessionControlsListene
     }
 
     private fun setupClickListeners() {
-        binding.fabAddSession.setOnClickListener {
-            showAvailableConsolesDialog()
-        }
-
-        binding.switchPowerCut.setOnCheckedChangeListener { _, isChecked ->
-            val status = if (isChecked) "Rétabli" else "Coupure"
-            Toast.makeText(requireContext(), "Électricité : $status", Toast.LENGTH_SHORT).show()
-        }
+        binding.fabAddSession.setOnClickListener { showAvailableConsolesDialog() }
     }
 
     private fun showAvailableConsolesDialog() {
         lifecycleScope.launch {
-            // On récupère tout le matériel
             val allMateriel = materielViewModel.allMateriel.first()
+            val available = allMateriel.filter { it.id_reserve == 0 && it.type == "CONSOLE" }
 
-            // On filtre pour n'avoir que ce qui est libre (id_reserve == 0)
-            // ET ce qui est de type CONSOLE (car on ne lance pas une session sur un câble HDMI)
-            val availableMateriel = allMateriel.filter {
-                it.id_reserve == 0 && it.type == "CONSOLE"
-            }
-
-            if (availableMateriel.isEmpty()) {
-                Toast.makeText(requireContext(), "Aucune console libre", Toast.LENGTH_SHORT).show()
+            if (available.isEmpty()) {
+                Toast.makeText(requireContext(), "Aucun poste libre", Toast.LENGTH_SHORT).show()
                 return@launch
             }
 
-            val consoleNames = availableMateriel.map { "Poste ${it.id} - ${it.nom}" }.toTypedArray()
+            val names = available.map { "Poste ${it.id} : ${it.nom}" }.toTypedArray()
 
             AlertDialog.Builder(requireContext())
                 .setTitle("Choisir un poste")
-                .setItems(consoleNames) { dialog, which ->
-                    val selectedMateriel = availableMateriel[which]
-                    showGameSessionDialog(selectedMateriel)
-                    dialog.dismiss()
+                .setItems(names) { _, which ->
+                    loadLibraryAndShowDialog(available[which])
                 }
-                .setNegativeButton("Annuler") { dialog, _ ->
-                    dialog.dismiss()
-                }
+                .setNegativeButton("Annuler", null)
                 .show()
         }
     }
 
-    // --- INTERFACE CALLBACKS ---
-    override fun onPlayPauseClicked(session: GameSession) {
-        gameRoomViewModel.onPlayPauseClicked(session)
-    }
-
-    override fun onStopClicked(session: GameSession) {
-        gameRoomViewModel.onStopClicked(session)
-    }
-
-    override fun onAddTimeClicked(session: GameSession) {
-        gameRoomViewModel.onAddTimeClicked(session)
-    }
-
-    override fun onPaymentClicked(session: GameSession) {
-        gameRoomViewModel.onPaymentClicked(session)
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
-
-    // ===================================================================
-    //  LOGIQUE DE DIALOGUE
-    // ===================================================================
-
-    private fun loadGames() {
+    private fun loadLibraryAndShowDialog(console: Materiel) {
         lifecycleScope.launch {
-            try {
-                val database = AppDatabase.getDatabase(requireContext())
-                jeuxList = database.jeuxDao().getAllJeux()
-            } catch (e: Exception) {
-                // Toast.makeText(requireContext(), "Erreur chargement jeux", Toast.LENGTH_SHORT).show()
-                jeuxList = emptyList()
+            val db = AppDatabase.getDatabase(requireContext())
+            libraryList = db.jeuLibraryDao().getJeuxForConsole(console.id).first()
+
+            if (libraryList.isEmpty()) {
+                Toast.makeText(requireContext(), "Aucun jeu installé sur cette console", Toast.LENGTH_LONG).show()
+                return@launch
             }
+            showStartSessionDialog(console)
         }
     }
 
-    private fun showGameSessionDialog(materiel: Materiel) {
-        val dialogBinding = DialogGameSessionBinding.inflate(LayoutInflater.from(requireContext()))
+    private fun showStartSessionDialog(console: Materiel) {
+        val dBinding = DialogGameSessionBinding.inflate(layoutInflater)
+        val dialog = AlertDialog.Builder(requireContext()).setView(dBinding.root).create()
 
-        setupGameAutoComplete(dialogBinding.actvGameSelection, dialogBinding.etGameType)
-        setupAmountToTimeConversion(dialogBinding)
+        val gameNames = libraryList.map { it.nom_jeu }
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, gameNames)
+        dBinding.actvGameSelection.setAdapter(adapter)
 
-        val dialog = AlertDialog.Builder(requireContext())
-            .setView(dialogBinding.root)
-            .create()
+        var selectedLibGame: JeuLibrary? = null
 
-        dialogBinding.btnCancel.setOnClickListener {
-            dialog.dismiss()
-        }
-
-        dialogBinding.btnStart.setOnClickListener {
-            if (validateSessionForm(dialogBinding)) {
-                startGameSessionFromDialog(materiel, dialogBinding)
-                dialog.dismiss()
+        dBinding.actvGameSelection.setOnItemClickListener { _, _, position, _ ->
+            val name = adapter.getItem(position)
+            selectedLibGame = libraryList.find { it.nom_jeu == name }
+            selectedLibGame?.let {
+                dBinding.etGameType.setText("Tarif: ${it.tarif_par_tranche.toInt()} Ar / ${it.duree_tranche_min} min")
+                calculateTotal(dBinding, it)
             }
         }
 
+        dBinding.etAmount.hint = "Nombre de matchs"
+        dBinding.etAmount.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) { selectedLibGame?.let { calculateTotal(dBinding, it) } }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        })
+
+        dBinding.btnStart.setOnClickListener {
+            val playerName = dBinding.etPlayerName.text.toString()
+            val nbMatchsStr = dBinding.etAmount.text.toString()
+
+            if (playerName.isNotEmpty() && nbMatchsStr.isNotEmpty() && selectedLibGame != null) {
+                val nbMatchs = nbMatchsStr.toIntOrNull() ?: 1
+                startSession(console, selectedLibGame!!, playerName, nbMatchs)
+                dialog.dismiss()
+            } else {
+                Toast.makeText(requireContext(), "Veuillez tout remplir", Toast.LENGTH_SHORT).show()
+            }
+        }
+        dBinding.btnCancel.setOnClickListener { dialog.dismiss() }
         dialog.show()
     }
 
-    private fun setupGameAutoComplete(autoComplete: AutoCompleteTextView, gameTypeField: com.google.android.material.textfield.TextInputEditText) {
-        if (jeuxList.isEmpty()) {
-            autoComplete.isEnabled = false
-            autoComplete.hint = "Saisir un jeu"
-            return
-        }
-
-        val gameTitles = jeuxList.map { it.titre }.toTypedArray()
-        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, gameTitles)
-        autoComplete.setAdapter(adapter)
-
-        autoComplete.setOnItemClickListener { _, _, position, _ ->
-            val selectedGame = jeuxList[position]
-            gameTypeField.setText(selectedGame.type)
-        }
+    private fun calculateTotal(binding: DialogGameSessionBinding, game: JeuLibrary) {
+        val nbMatchs = binding.etAmount.text.toString().toIntOrNull() ?: 0
+        val totalPrix = nbMatchs * game.tarif_par_tranche
+        val totalTemps = nbMatchs * game.duree_tranche_min
+        binding.tvCalculatedTime.text = "Temps: $totalTemps min | Total: ${totalPrix.toInt()} Ar"
     }
 
-    private fun setupAmountToTimeConversion(dialogBinding: DialogGameSessionBinding) {
-        dialogBinding.etAmount.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus) {
-                calculateAndDisplayTime(dialogBinding)
-            }
-        }
-        dialogBinding.etAmount.setOnKeyListener { _, _, _ ->
-            calculateAndDisplayTime(dialogBinding)
-            false
-        }
-    }
-
-    private fun calculateAndDisplayTime(dialogBinding: DialogGameSessionBinding) {
-        val amountText = dialogBinding.etAmount.text.toString().trim()
-        if (amountText.isNotEmpty()) {
-            try {
-                val amount = amountText.toInt()
-                val minutes = (amount / 400.0 * 10).toInt()
-                dialogBinding.tvCalculatedTime.text = "Temps: ${minutes} minutes"
-
-                if (amount < 400) {
-                    dialogBinding.tvCalculatedTime.setTextColor(
-                        requireContext().getColor(android.R.color.holo_red_dark)
-                    )
-                } else {
-                    dialogBinding.tvCalculatedTime.setTextColor(
-                        requireContext().getColor(R.color.teal_700)
-                    )
-                }
-            } catch (e: NumberFormatException) {
-                dialogBinding.tvCalculatedTime.text = "Montant invalide"
-            }
-        }
-    }
-
-    private fun validateSessionForm(dialogBinding: DialogGameSessionBinding): Boolean {
-        val selectedGame = dialogBinding.actvGameSelection.text.toString().trim()
-        val amount = dialogBinding.etAmount.text.toString().trim()
-        val playerName = dialogBinding.etPlayerName.text.toString().trim()
-
-        if (selectedGame.isEmpty()) {
-            dialogBinding.actvGameSelection.error = "Requis"
-            return false
-        }
-        if (amount.isEmpty()) {
-            dialogBinding.etAmount.error = "Requis"
-            return false
-        }
-        if (playerName.isEmpty()) {
-            dialogBinding.etPlayerName.error = "Requis"
-            return false
-        }
-        return true
-    }
-
-    private fun startGameSessionFromDialog(materiel: Materiel, dialogBinding: DialogGameSessionBinding) {
+    private fun startSession(console: Materiel, gameLib: JeuLibrary, playerName: String, nbMatchs: Int) {
         lifecycleScope.launch {
-            try {
-                val database = AppDatabase.getDatabase(requireContext())
-                val selectedGameTitle = dialogBinding.actvGameSelection.text.toString().trim()
-                val playerName = dialogBinding.etPlayerName.text.toString().trim()
+            val db = AppDatabase.getDatabase(requireContext())
 
-                val selectedGame = jeuxList.find { it.titre == selectedGameTitle }
-                    ?: Jeux(titre = selectedGameTitle, type = "Autre", id_playeur = 0, id_materiel = 0, id_finance = 0)
+            // 1. Créer Joueur (CORRECTION : id_tournoi est null par défaut dans l'entité maintenant)
+            val player = Playeur(
+                nom = playerName,
+                prenom = "",
+                id_tournoi = null // On passe null explicitement ou on utilise la valeur par défaut
+            )
+            val playerId = db.playeurDao().insertPlayeur(player).toInt()
 
-                val newPlayer = Playeur(
-                    nom = playerName,
-                    prenom = "",
-                    id_tournoi = 0
-                )
-                val playerId = database.playeurDao().insertPlayeur(newPlayer).toInt()
+            val durationMin = (nbMatchs * gameLib.duree_tranche_min).toLong()
+            val totalPrice = nbMatchs * gameLib.tarif_par_tranche
 
-                val gameSession = Jeux(
-                    titre = selectedGame.titre,
-                    type = selectedGame.type,
-                    id_playeur = playerId,
-                    id_materiel = materiel.id,
-                    id_finance = 0
-                )
+            // 2. Créer Session (CORRECTION : id_finance est null)
+            val session = Jeux(
+                titre = gameLib.nom_jeu,
+                type = console.type,
+                id_playeur = playerId,
+                id_materiel = console.id,
+                id_finance = null, // Pas encore payé
+                timestamp_debut = System.currentTimeMillis(),
+                nombre_tranches = nbMatchs,
+                duree_totale_prevue = durationMin,
+                montant_total = totalPrice,
+                est_paye = false,
+                est_termine = false
+            )
+            db.jeuxDao().insertJeux(session)
 
-                database.jeuxDao().insertJeux(gameSession)
+            // 3. Marquer Matériel Occupé
+            db.materielDao().update(console.copy(id_reserve = 1))
 
-                // Mise à jour du statut du matériel (Occupé)
-                // On utilise l'ID de la session ou juste 1 pour dire "occupé"
-                val updatedMateriel = materiel.copy(id_reserve = 1, quantite_utilise = 1)
-                database.materielDao().update(updatedMateriel)
-
-                Toast.makeText(requireContext(), "Session démarrée !", Toast.LENGTH_SHORT).show()
-
-            } catch (e: Exception) {
-                Toast.makeText(requireContext(), "Erreur: ${e.message}", Toast.LENGTH_LONG).show()
-                e.printStackTrace()
-            }
+            Toast.makeText(requireContext(), "Session lancée !", Toast.LENGTH_SHORT).show()
         }
     }
+
+    override fun onPlayPauseClicked(session: GameSession) { gameRoomViewModel.onPlayPauseClicked(session) }
+    override fun onStopClicked(session: GameSession) { gameRoomViewModel.onStopClicked(session) }
+    override fun onAddTimeClicked(session: GameSession) { gameRoomViewModel.onAddTimeClicked(session) }
+    override fun onPaymentClicked(session: GameSession) { gameRoomViewModel.onPaymentClicked(session) }
 }

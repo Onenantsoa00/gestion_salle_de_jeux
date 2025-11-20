@@ -2,24 +2,20 @@ package com.example.gestion_salle_de_jeux.ui.GameRoomFragment.model
 
 data class GameSession(
     val id: String,
-    val postName: String, // ex: "Poste 1"
-    val consoleName: String, // ex: "PS5"
-    val gameName: String, // ex: "PES"
-    val players: String, // ex: "Davide - Laura"
-    val matchDetails: String, // ex: "4 * 500 Ar = 2000 Ar"
-    val timeRemaining: String, // ex: "10 : 40 min"
+    val postName: String,
+    val consoleName: String,
+    val gameName: String,
+    val players: String,
+    val matchDetails: String,
+    val timeRemaining: String,
     val paymentStatus: PaymentStatus,
     val sessionStatus: SessionStatus,
-    val isPaused: Boolean
+    val isPaused: Boolean,
+
+    // Nouveaux champs pour le calcul (non affichés directement)
+    val rawStartTime: Long = 0,
+    val rawDurationMinutes: Long = 0
 )
 
-enum class PaymentStatus {
-    PAID,
-    UNPAID
-}
-
-enum class SessionStatus {
-    ONLINE, // Vert
-    WARNING, // Jaune
-    ERROR // Triangle d'avertissement
-}
+enum class PaymentStatus { PAID, UNPAID }
+enum class SessionStatus { ONLINE, WARNING, ERROR }

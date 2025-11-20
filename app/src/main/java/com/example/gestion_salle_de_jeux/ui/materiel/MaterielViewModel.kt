@@ -54,22 +54,30 @@ class MaterielViewModel(
         }
     }
 
-    // --- Gestion Jeux (CORRIGÉ) ---
-    fun addGameToConsole(consoleId: Int, gameName: String) {
+    // --- Gestion Jeux ---
+    fun addGameToConsole(consoleId: Int, gameName: String, tarif: Double, duree: Int) {
         viewModelScope.launch {
-            jeuLibraryDao.insert(JeuLibrary(id_materiel = consoleId, nom_jeu = gameName))
+            val nouveauJeu = JeuLibrary(
+                id_materiel = consoleId,
+                nom_jeu = gameName,
+                tarif_par_tranche = tarif,
+                duree_tranche_min = duree
+            )
+            jeuLibraryDao.insert(nouveauJeu)
         }
     }
 
-    // NOUVEAU : Modifier un jeu
-    fun updateGame(jeu: JeuLibrary, newName: String) {
+    fun updateGame(jeu: JeuLibrary, newName: String, newTarif: Double, newDuree: Int) {
         viewModelScope.launch {
-            val updatedJeu = jeu.copy(nom_jeu = newName)
+            val updatedJeu = jeu.copy(
+                nom_jeu = newName,
+                tarif_par_tranche = newTarif,
+                duree_tranche_min = newDuree
+            )
             jeuLibraryDao.update(updatedJeu)
         }
     }
 
-    // NOUVEAU : Supprimer un jeu
     fun deleteGame(jeu: JeuLibrary) {
         viewModelScope.launch {
             jeuLibraryDao.delete(jeu)
@@ -87,11 +95,13 @@ class MaterielViewModel(
             else -> R.drawable.ic_gamepad
         }
         val enStock = entity.quantite - entity.quantite_utilise
+
+        // CORRECTION ICI : Format "Utilisé : Y | Stock : Z"
         return MaterialUiItem(
             id = entity.id,
             name = entity.nom,
-            count = entity.quantite,
-            stockStatus = "Utilisé: ${entity.quantite_utilise} | Dispo: $enStock",
+            count = entity.quantite, // Sera affiché comme "Total : X" par l'adapter
+            stockStatus = "Utilisé : ${entity.quantite_utilise} | Stock : $enStock",
             iconResId = iconRes
         )
     }

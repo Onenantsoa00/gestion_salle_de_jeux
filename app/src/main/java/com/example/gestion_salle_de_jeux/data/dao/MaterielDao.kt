@@ -18,4 +18,7 @@ interface MaterielDao {
 
     @Delete
     suspend fun delete(materiel: Materiel)
+
+    @Query("SELECT * FROM Materiel WHERE id = :id")
+    suspend fun getMaterielById(id: Int): Materiel?
 }
